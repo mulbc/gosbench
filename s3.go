@@ -57,6 +57,7 @@ func initS3() {
 		HTTPClient: hc,
 		Region:     &config.S3Config.Region,
 	}))
+	// Use this Session to do things that are hidden from the performance monitoring
 	housekeepingSess := session.Must(session.NewSession(&aws.Config{
 		Region: &config.S3Config.Region,
 	}))
@@ -84,6 +85,7 @@ func initS3() {
 	// to the New function. This option allows you to provide service
 	// specific configuration.
 	svc = s3.New(sess)
+	// Use this service to do things that are hidden from the performance monitoring
 	housekeepingSvc = s3.New(housekeepingSess)
 
 	// Create a context with a timeout that will abort the data transfer if it takes
@@ -101,12 +103,9 @@ func initS3() {
 	log.Debug("S3 Init done")
 }
 
-func putObject(service *s3.S3, testConfig *testCaseConfiguration, objectName string, objectContent io.ReadSeeker, bucket string) error {
+func putObject(service *s3.S3, objectName string, objectContent io.ReadSeeker, bucket string) error {
 	// Create an uploader with S3 client and custom options
-	uploader := s3manager.NewUploaderWithClient(service, func(u *s3manager.Uploader) {
-		u.PartSize = int64(testConfig.Objects.PartSize)
-		u.Concurrency = testConfig.ParallelClients
-	})
+	uploader := s3manager.NewUploaderWithClient(service)
 
 	_, err := uploader.UploadWithContext(ctx, &s3manager.UploadInput{
 		Bucket: &bucket,
@@ -129,7 +128,10 @@ func putObject(service *s3.S3, testConfig *testCaseConfiguration, objectName str
 }
 
 func getObjectProperties(service *s3.S3, objectName string, bucket string) {
-	result, err := svc.GetObjectWithContext(ctx, &s3.GetObjectInput{
+	service.ListObjects(&s3.ListObjectsInput{
+		Bucket: &bucket,
+	})
+	result, err := service.GetObjectWithContext(ctx, &s3.GetObjectInput{
 		Bucket: &bucket,
 		Key:    &objectName,
 	})
@@ -147,13 +149,24 @@ func getObjectProperties(service *s3.S3, objectName string, bucket string) {
 
 	log.Debugf("Object Properties:\n%+v", result)
 }
-
-func getObject(service *s3.S3, testConfig *testCaseConfiguration, objectName string, bucket string) error {
-	// Create a downloader with the session and custom options
-	downloader := s3manager.NewDownloaderWithClient(service, func(d *s3manager.Downloader) {
-		d.PartSize = int64(testConfig.Objects.PartSize)
-		d.Concurrency = testConfig.ParallelClients
+func listObjects(service *s3.S3, prefix string, bucket string) error {
+	_, err := service.ListObjects(&s3.ListObjectsInput{
+		Bucket: &bucket,
+		Prefix: &prefix,
 	})
+	if err != nil {
+		// Cast err to awserr.Error to handle specific error codes.
+		aerr, ok := err.(awserr.Error)
+		if ok && aerr.Code() == s3.ErrCodeNoSuchKey {
+			log.WithError(aerr).Errorf("Could not find prefix %s in bucket %s when querying properties", prefix, bucket)
+		}
+	}
+	return err
+}
+
+func getObject(service *s3.S3, objectName string, bucket string) error {
+	// Create a downloader with the session and custom options
+	downloader := s3manager.NewDownloaderWithClient(service)
 	buf := aws.NewWriteAtBuffer([]byte{})
 	_, err := downloader.DownloadWithContext(ctx, buf, &s3.GetObjectInput{
 		Bucket: &bucket,
@@ -163,7 +176,7 @@ func getObject(service *s3.S3, testConfig *testCaseConfiguration, objectName str
 }
 
 func deleteObject(service *s3.S3, objectName string, bucket string) error {
-	_, err := svc.DeleteObjectsWithContext(ctx, &s3.DeleteObjectsInput{
+	_, err := service.DeleteObjectsWithContext(ctx, &s3.DeleteObjectsInput{
 		Bucket: &bucket,
 		// Key:    objectName,
 		Delete: &s3.Delete{
@@ -184,6 +197,7 @@ func deleteObject(service *s3.S3, objectName string, bucket string) error {
 }
 
 func createBucket(service *s3.S3, bucket string) error {
+	// TODO do not err when the bucket is already there...
 	_, err := service.CreateBucket(&s3.CreateBucketInput{
 		Bucket: &bucket,
 	})

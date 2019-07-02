@@ -56,11 +56,15 @@ type testCaseConfiguration struct {
 		NumberDistribution string `yaml:"number_distribution"`
 	} `yaml:"buckets"`
 	BucketPrefix    string        `yaml:"bucket_prefix"`
-	Runtime         time.Duration `yaml:"runtime"`
+	Runtime         time.Duration `yaml:"stop_with_runtime"`
+	OpsDeadline     uint64        `yaml:"stop_with_ops"`
 	Workers         int           `yaml:"workers"`
 	ParallelClients int           `yaml:"parallel_clients"`
 	CleanAfter      bool          `yaml:"clean_after"`
-	ReadRatio       float64       `yaml:"read_ratio"`
+	ReadWeight      int           `yaml:"read_weight"`
+	WriteWeight     int           `yaml:"write_weight"`
+	ListWeight      int           `yaml:"list_weight"`
+	DeleteWeight    int           `yaml:"delete_weight"`
 }
 
 type testconf struct {
@@ -100,11 +104,11 @@ func checkConfig() {
 }
 
 func checkTestCase(testcase *testCaseConfiguration) error {
-	if testcase.Runtime == 0 {
-		return fmt.Errorf("runtime needs to be set")
+	if testcase.Runtime == 0 && testcase.OpsDeadline == 0 {
+		return fmt.Errorf("Either stop_with_runtime or stop_with_ops needs to be set")
 	}
-	if testcase.ReadRatio == 0 {
-		return fmt.Errorf("The Read ratio needs to be set as a floating point number between 0.0 and 1.0")
+	if testcase.ReadWeight == 0 && testcase.WriteWeight == 0 && testcase.ListWeight == 0 && testcase.DeleteWeight == 0 {
+		return fmt.Errorf("At least one weight needs to be set - Read / Write / List / Delete")
 	}
 	if testcase.Buckets.NumberMin == 0 {
 		return fmt.Errorf("Please set minimum number of Buckets")
