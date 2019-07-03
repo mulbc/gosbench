@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"context"
@@ -22,24 +22,14 @@ var svc, housekeepingSvc *s3.S3
 var ctx context.Context
 var bucket string
 
-// Uploads a file to S3 given a bucket and object key. Also takes a duration
-// value to terminate the update if it doesn't complete within that time.
-//
-// The AWS Region needs to be provided in the AWS shared config or on the
-// environment variable as `AWS_REGION`. Credentials also must be provided
-// Will default to shared config file, but can load from environment if provided.
-//
-// Usage:
-//   # Upload myfile.txt to myBucket/myKey. Must complete within 10 minutes or will fail
-//   go run withContext.go -b mybucket -k myKey -d 10m < myfile.txt
-func initS3() {
-	// var timeout time.Duration
-
+// InitS3 initialises the S3 session
+// Also starts the Prometheus exporter on Port 8888
+func InitS3(config Testconf) {
 	// Then create the prometheus stat exporter
 	pe, err := prometheus.NewExporter(prometheus.Options{
 		Namespace: "gosbench",
 		ConstLabels: map[string]string{
-			"version": APPVERSION,
+			"version": "0.0.1",
 		},
 	})
 	if err != nil {
@@ -55,10 +45,12 @@ func initS3() {
 
 	sess := session.Must(session.NewSession(&aws.Config{
 		HTTPClient: hc,
-		Region:     &config.S3Config[0].Region,
+		// TODO Also set the remaining S3 connection details...
+		Region: &config.S3Config[0].Region,
 	}))
 	// Use this Session to do things that are hidden from the performance monitoring
 	housekeepingSess := session.Must(session.NewSession(&aws.Config{
+		// TODO Also set the remaining S3 connection details...
 		Region: &config.S3Config[0].Region,
 	}))
 
@@ -88,18 +80,9 @@ func initS3() {
 	// Use this service to do things that are hidden from the performance monitoring
 	housekeepingSvc = s3.New(housekeepingSess)
 
-	// Create a context with a timeout that will abort the data transfer if it takes
-	// more than the passed in timeout.
+	// TODO Create a context with a timeout - we already use this context in all S3 calls
+	// Usually this shouldn't be a problem ;)
 	ctx = context.Background()
-	var cancelFn func()
-	if config.S3Config[0].Timeout > 0 {
-		// ctx, cancelFn = context.WithTimeout(ctx, config.S3Config.Timeout)
-	}
-	// Ensure the context is canceled to prevent leaking.
-	// See context package for more information, https://golang.org/pkg/context/
-	if cancelFn != nil {
-		defer cancelFn()
-	}
 	log.Debug("S3 Init done")
 }
 
@@ -178,7 +161,6 @@ func getObject(service *s3.S3, objectName string, bucket string) error {
 func deleteObject(service *s3.S3, objectName string, bucket string) error {
 	_, err := service.DeleteObjectsWithContext(ctx, &s3.DeleteObjectsInput{
 		Bucket: &bucket,
-		// Key:    objectName,
 		Delete: &s3.Delete{
 			Objects: []*s3.ObjectIdentifier{&s3.ObjectIdentifier{Key: &objectName}},
 		},

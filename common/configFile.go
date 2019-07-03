@@ -1,15 +1,12 @@
-package main
+package common
 
 import (
-	"flag"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 )
 
 // This uses the Base 2 calculation where
@@ -22,7 +19,8 @@ const (
 	TERABYTE
 )
 
-type s3Configuration struct {
+// S3Configuration contains all information to connect to a certain S3 endpoint
+type S3Configuration struct {
 	AccessKey string        `yaml:"access_key"`
 	SecretKey string        `yaml:"secret_key"`
 	Region    string        `yaml:"region"`
@@ -30,32 +28,36 @@ type s3Configuration struct {
 	Timeout   time.Duration `yaml:"timeout"`
 }
 
-type grafanaConfiguration struct {
+// GrafanaConfiguration contains all information necessary to add annotations
+// via the Grafana HTTP API
+type GrafanaConfiguration struct {
 	username string `yaml:"username"`
 	password string `yaml:"password"`
 	Endpoint string `yaml:"endpoint"`
 }
 
-type testCaseConfiguration struct {
+// TestCaseConfiguration is the configuration of a performance test
+type TestCaseConfiguration struct {
 	Objects struct {
 		SizeMin            uint64 `yaml:"size_min"`
 		SizeMax            uint64 `yaml:"size_max"`
 		PartSize           uint64 `yaml:"part_size"`
-		sizeLast           uint64
+		SizeLast           uint64
 		SizeDistribution   string `yaml:"size_distribution"`
 		NumberMin          uint64 `yaml:"number_min"`
 		NumberMax          uint64 `yaml:"number_max"`
-		numberLast         uint64
+		NumberLast         uint64
 		NumberDistribution string `yaml:"number_distribution"`
 		Unit               string `yaml:"unit"`
 	} `yaml:"objects"`
 	Buckets struct {
 		NumberMin          uint64 `yaml:"number_min"`
 		NumberMax          uint64 `yaml:"number_max"`
-		numberLast         uint64
+		NumberLast         uint64
 		NumberDistribution string `yaml:"number_distribution"`
 	} `yaml:"buckets"`
 	BucketPrefix    string        `yaml:"bucket_prefix"`
+	ObjectPrefix    string        `yaml:"object_prefix"`
 	Runtime         time.Duration `yaml:"stop_with_runtime"`
 	OpsDeadline     uint64        `yaml:"stop_with_ops"`
 	Workers         int           `yaml:"workers"`
@@ -67,33 +69,23 @@ type testCaseConfiguration struct {
 	DeleteWeight    int           `yaml:"delete_weight"`
 }
 
-type testconf struct {
-	S3Config      []*s3Configuration       `yaml:"s3_config"`
-	GrafanaConfig *grafanaConfiguration    `yaml:"grafana_config"`
-	Tests         []*testCaseConfiguration `yaml:"tests"`
+// Testconf contains all the information necessary to set up a distributed test
+type Testconf struct {
+	S3Config      []*S3Configuration       `yaml:"s3_config"`
+	GrafanaConfig *GrafanaConfiguration    `yaml:"grafana_config"`
+	Tests         []*TestCaseConfiguration `yaml:"tests"`
 }
 
-var configFileLocation string
-var config testconf
-
-func init() {
-	flag.StringVar(&configFileLocation, "c", "", "Config file describing test run")
-	flag.Parse()
-	if configFileLocation == "" {
-		log.Fatal("-c is a mandatory parameter - please specify the config file")
-	}
-
-	configFileContent, err := ioutil.ReadFile(configFileLocation)
-	if err != nil {
-		log.WithError(err).Fatalf("Error reading config file:")
-	}
-	err = yaml.Unmarshal(configFileContent, &config)
-	if err != nil {
-		log.WithError(err).Fatalf("Error unmarshaling config file:")
-	}
+// WorkerConf is the configuration that is sent to each worker
+// It includes a subset of information from the Testconf
+type WorkerConf struct {
+	S3Config *S3Configuration
+	Test     *TestCaseConfiguration
+	WorkerID string
 }
 
-func checkConfig() {
+// CheckConfig checks the global config
+func CheckConfig(config Testconf) {
 	for _, testcase := range config.Tests {
 		// log.Debugf("Checking testcase with prefix %s", testcase.BucketPrefix)
 		err := checkTestCase(testcase)
@@ -103,7 +95,7 @@ func checkConfig() {
 	}
 }
 
-func checkTestCase(testcase *testCaseConfiguration) error {
+func checkTestCase(testcase *TestCaseConfiguration) error {
 	if testcase.Runtime == 0 && testcase.OpsDeadline == 0 {
 		return fmt.Errorf("Either stop_with_runtime or stop_with_ops needs to be set")
 	}
@@ -166,7 +158,8 @@ func checkDistribution(distribution string, keyname string) error {
 	return fmt.Errorf("%s is not a valid distribution. Allowed options are constant, random, sequential", keyname)
 }
 
-func evaluateDistribution(min uint64, max uint64, lastNumber *uint64, increment uint64, distribution string) uint64 {
+// EvaluateDistribution looks at the given distribution and returns a meaningful next number
+func EvaluateDistribution(min uint64, max uint64, lastNumber *uint64, increment uint64, distribution string) uint64 {
 	switch distribution {
 	case "constant":
 		return min
