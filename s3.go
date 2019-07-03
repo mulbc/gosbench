@@ -55,11 +55,11 @@ func initS3() {
 
 	sess := session.Must(session.NewSession(&aws.Config{
 		HTTPClient: hc,
-		Region:     &config.S3Config.Region,
+		Region:     &config.S3Config[0].Region,
 	}))
 	// Use this Session to do things that are hidden from the performance monitoring
 	housekeepingSess := session.Must(session.NewSession(&aws.Config{
-		Region: &config.S3Config.Region,
+		Region: &config.S3Config[0].Region,
 	}))
 
 	if err := view.Register([]*view.View{
@@ -92,7 +92,7 @@ func initS3() {
 	// more than the passed in timeout.
 	ctx = context.Background()
 	var cancelFn func()
-	if config.S3Config.Timeout > 0 {
+	if config.S3Config[0].Timeout > 0 {
 		// ctx, cancelFn = context.WithTimeout(ctx, config.S3Config.Timeout)
 	}
 	// Ensure the context is canceled to prevent leaking.

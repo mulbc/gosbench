@@ -68,7 +68,7 @@ type testCaseConfiguration struct {
 }
 
 type testconf struct {
-	S3Config      *s3Configuration         `yaml:"s3_config"`
+	S3Config      []*s3Configuration       `yaml:"s3_config"`
 	GrafanaConfig *grafanaConfiguration    `yaml:"grafana_config"`
 	Tests         []*testCaseConfiguration `yaml:"tests"`
 }
