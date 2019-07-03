@@ -123,7 +123,7 @@ func putObject(service *s3.S3, objectName string, objectContent io.ReadSeeker, b
 		return err
 	}
 
-	log.WithField("bucket", bucket).WithField("key", objectName).Debugf("Upload successful")
+	log.WithField("bucket", bucket).WithField("key", objectName).Tracef("Upload successful")
 	return err
 }
 
@@ -189,10 +189,7 @@ func deleteObject(service *s3.S3, objectName string, bucket string) error {
 		if ok && aerr.Code() == s3.ErrCodeNoSuchKey {
 			log.WithError(aerr).Errorf("Could not find object %s in bucket %s for deletion", objectName, bucket)
 		}
-		return err
 	}
-
-	log.Infof("Object %s/%s deleted\n", bucket, objectName)
 	return err
 }
 

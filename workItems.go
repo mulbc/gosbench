@@ -67,7 +67,6 @@ var workContext context.Context
 var workCancel context.CancelFunc
 
 func increaseOperationValue(operation string, value float64, queue *workqueue) error {
-	log.Debug("Tests")
 	for i := range queue.operationValues {
 		if queue.operationValues[i].Key == operation {
 			queue.operationValues[i].Value += value

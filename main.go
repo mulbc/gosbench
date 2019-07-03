@@ -44,7 +44,7 @@ func generateRandomBytes(size uint64) *[]byte {
 	if err != nil {
 		log.Fatal("I had issues getting my random bytes initialized")
 	}
-	log.Debugf("Generated %d random bytes in %v", n, time.Since(now))
+	log.Tracef("Generated %d random bytes in %v", n, time.Since(now))
 	return &random
 }
 
@@ -66,16 +66,17 @@ func perfTest(testConfig *testCaseConfiguration) {
 	}
 	fillWorkQueue(testConfig, workQueue)
 
+	log.Info("Work preparation started")
 	for _, work := range *workQueue.queue {
-		log.Debug("Work preparation started")
 		work.prepare()
-		log.Debug("Work preparation finished")
 	}
+	log.Info("Work preparation finished")
 	workChannel := make(chan workItem, len(*workQueue.queue))
 	doneChannel := make(chan bool)
 	for worker := 0; worker < testConfig.ParallelClients; worker++ {
 		go doWork(workChannel, doneChannel)
 	}
+	log.Infof("Started %d parallel clients", testConfig.ParallelClients)
 	if testConfig.Runtime != 0 {
 		workUntilTimeout(workQueue, workChannel, testConfig.Runtime)
 	} else {
@@ -85,12 +86,13 @@ func perfTest(testConfig *testCaseConfiguration) {
 	for i := 0; i < testConfig.ParallelClients; i++ {
 		<-doneChannel
 	}
+	log.Info("All clients finished")
 	if testConfig.CleanAfter {
-		log.Debug("Housekeeping started")
+		log.Info("Housekeeping started")
 		for _, work := range *workQueue.queue {
 			work.clean()
 		}
-		log.Debug("Housekeeping finished")
+		log.Info("Housekeeping finished")
 	}
 }
 
@@ -122,7 +124,7 @@ func workUntilOps(workQueue *workqueue, workChannel chan workItem, maxOps uint64
 	for {
 		for _, work := range *workQueue.queue {
 			if currentOps >= maxOps {
-				log.Debug("We've added enough Ops to our queue... waiting for workers to finish this")
+				log.Debug("Reached OpsDeadline ... waiting for workers to finish")
 				for worker := 0; worker < numberOfWorker; worker++ {
 					workChannel <- stopper{}
 				}
