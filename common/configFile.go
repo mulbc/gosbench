@@ -84,6 +84,14 @@ type WorkerConf struct {
 	WorkerID string
 }
 
+// WorkerMessage is the struct that is exchanged in the communication between
+// server and worker. It usually only contains a message, but during the init
+// phase, also contains the config for the worker
+type WorkerMessage struct {
+	Message string
+	Config  *WorkerConf
+}
+
 // CheckConfig checks the global config
 func CheckConfig(config Testconf) {
 	for _, testcase := range config.Tests {

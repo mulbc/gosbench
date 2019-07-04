@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -25,7 +24,7 @@ func init() {
 }
 
 var configFileLocation string
-var readyWorkers chan net.Conn
+var readyWorkers chan *net.Conn
 
 func loadConfigFromFile() common.Testconf {
 	flag.StringVar(&configFileLocation, "c", "", "Config file describing test run")
@@ -56,7 +55,7 @@ func main() {
 	config := loadConfigFromFile()
 	common.CheckConfig(config)
 
-	readyWorkers = make(chan net.Conn)
+	readyWorkers = make(chan *net.Conn)
 	defer close(readyWorkers)
 
 	// common.InitS3(config)
@@ -83,14 +82,14 @@ func main() {
 		// Handle the connection in a new goroutine.
 		// The loop then returns to accepting, so that
 		// multiple connections may be served concurrently.
-		go func(c net.Conn) {
-			log.Infof("%s connected to us ", c.RemoteAddr())
-			decoder := json.NewDecoder(c)
+		go func(c *net.Conn) {
+			log.Infof("%s connected to us ", (*c).RemoteAddr())
+			decoder := json.NewDecoder(*c)
 			var message string
 			err := decoder.Decode(&message)
 			if err != nil {
 				log.WithField("message", message).WithError(err).Error("Could not decode message, closing connection")
-				c.Close()
+				(*c).Close()
 				return
 			}
 			if message == "ready for work" {
@@ -98,7 +97,7 @@ func main() {
 				readyWorkers <- c
 				return
 			}
-		}(conn)
+		}(&conn)
 		// Shut down the connection.
 		// defer conn.Close()
 	}
@@ -106,51 +105,62 @@ func main() {
 
 func scheduleTests(config common.Testconf) {
 
-	for _, test := range config.Tests {
-		workerConfig := &common.WorkerConf{
-			Test: test,
-		}
-		preparedWorkers := make(chan bool, test.Workers)
+	for testNumber, test := range config.Tests {
+
+		doneChannel := make(chan bool, test.Workers)
 		continueWorkers := make(chan bool, test.Workers)
-		defer close(preparedWorkers)
+		defer close(doneChannel)
 		defer close(continueWorkers)
 
 		for worker := 0; worker < test.Workers; worker++ {
-			workerConfig.S3Config = config.S3Config[worker%len(config.S3Config)]
-			workerConfig.WorkerID = fmt.Sprintf("w%d", worker)
-			go executeTestOnWorker(<-readyWorkers, workerConfig, preparedWorkers, continueWorkers)
+			workerConfig := &common.WorkerConf{
+				Test:     test,
+				S3Config: config.S3Config[worker%len(config.S3Config)],
+				WorkerID: fmt.Sprintf("w%d", worker),
+			}
+			workerConnection := <-readyWorkers
+			log.WithField("Worker", (*workerConnection).RemoteAddr()).Debugf("We found worker %d for test %d", worker, testNumber)
+			go executeTestOnWorker(workerConnection, workerConfig, doneChannel, continueWorkers)
 		}
 		for worker := 0; worker < test.Workers; worker++ {
-			<-preparedWorkers
+			// Will halt until all workers are done with preparations
+			<-doneChannel
 		}
+		log.WithField("test", testNumber).Info("All workers have finished preparations - starting performance test")
 		for worker := 0; worker < test.Workers; worker++ {
 			continueWorkers <- true
 		}
+		for worker := 0; worker < test.Workers; worker++ {
+			// Will halt until all workers are done with their work
+			<-doneChannel
+		}
+		log.WithField("test", testNumber).Info("All workers have finished the performance test - continuing with next test")
 	}
+	log.Info("All performance tests finished - idling so that you can get my performance data")
 }
 
-func executeTestOnWorker(conn net.Conn, config *common.WorkerConf, preparedWorkers chan bool, continueWorkers chan bool) {
-	encoder := json.NewEncoder(conn)
-	decoder := json.NewDecoder(conn)
-	encoder.Encode(config)
+func executeTestOnWorker(conn *net.Conn, config *common.WorkerConf, doneChannel chan bool, continueWorkers chan bool) {
+	encoder := json.NewEncoder(*conn)
+	decoder := json.NewDecoder(*conn)
+	encoder.Encode(common.WorkerMessage{Message: "init", Config: config})
 
-	var response string
+	var response common.WorkerMessage
 	for {
-		time.Sleep(time.Second)
 		err := decoder.Decode(&response)
-		if err == io.EOF {
-			continue
-		} else if err != nil {
+		if err != nil {
 			log.WithField("worker", config.WorkerID).WithField("message", response).WithError(err).Error("Worker responded unusually - dropping")
-			conn.Close()
+			(*conn).Close()
 			return
 		}
-		switch response {
+		log.Tracef("Response: %+v", response)
+		switch response.Message {
 		case "preparations done":
-			preparedWorkers <- true
+			doneChannel <- true
 			<-continueWorkers
-			encoder.Encode("start work")
+			encoder.Encode(common.WorkerMessage{Message: "start work"})
 		case "work done":
+			doneChannel <- true
+			(*conn).Close()
 			return
 		}
 	}

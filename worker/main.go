@@ -1,14 +1,19 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
 	"math/rand"
+	"net"
 	"time"
 
 	"github.com/lukechampine/fastxor"
 	"github.com/mulbc/gosbench/common"
 	log "github.com/sirupsen/logrus"
 )
+
+var config common.WorkerConf
 
 func init() {
 	log.SetLevel(log.DebugLevel)
@@ -19,7 +24,47 @@ func init() {
 }
 
 func main() {
+	var serverAddress string
+	flag.StringVar(&serverAddress, "s", "", "Gosbench Server IP and Port in the form '192.168.1.1:2000'")
+	flag.Parse()
+	if serverAddress == "" {
+		log.Fatal("-s is a mandatory parameter - please specify the server IP and Port")
+	}
 
+	conn, err := net.Dial("tcp", serverAddress)
+	if err != nil {
+		log.WithError(err).Fatal("Could not connect to the server")
+	}
+	encoder := json.NewEncoder(conn)
+	decoder := json.NewDecoder(conn)
+
+	encoder.Encode("ready for work")
+
+	var response common.WorkerMessage
+	for {
+		err := decoder.Decode(&response)
+		if err != nil {
+			log.WithField("message", response).WithError(err).Error("Server responded unusually - dropping")
+			conn.Close()
+			return
+		}
+		log.Tracef("Response: %+v", response)
+		switch response.Message {
+		case "init":
+			config = *response.Config
+			log.Info("Got config from server - starting preparations now")
+			encoder.Encode(common.WorkerMessage{Message: "preparations done"})
+		case "start work":
+			if config == (common.WorkerConf{}) {
+				log.Fatal("Was instructed to start work - but my config is empty - bailing")
+				return
+			}
+			log.Info("Starting to work")
+			encoder.Encode(common.WorkerMessage{Message: "work done"})
+			// TODO return to being a ready worker
+			return
+		}
+	}
 }
 
 func generateRandomBytes(size uint64) *[]byte {
