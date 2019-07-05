@@ -1,4 +1,4 @@
-package common
+package main
 
 import (
 	"context"
@@ -14,17 +14,17 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"contrib.go.opencensus.io/exporter/prometheus"
+	"github.com/mulbc/gosbench/common"
 	"go.opencensus.io/plugin/ochttp"
 	"go.opencensus.io/stats/view"
 )
 
 var svc, housekeepingSvc *s3.S3
 var ctx context.Context
-var bucket string
 
 // InitS3 initialises the S3 session
 // Also starts the Prometheus exporter on Port 8888
-func InitS3(config Testconf) {
+func InitS3(config common.S3Configuration) {
 	// Then create the prometheus stat exporter
 	pe, err := prometheus.NewExporter(prometheus.Options{
 		Namespace: "gosbench",
@@ -46,12 +46,12 @@ func InitS3(config Testconf) {
 	sess := session.Must(session.NewSession(&aws.Config{
 		HTTPClient: hc,
 		// TODO Also set the remaining S3 connection details...
-		Region: &config.S3Config[0].Region,
+		Region: &config.Region,
 	}))
 	// Use this Session to do things that are hidden from the performance monitoring
 	housekeepingSess := session.Must(session.NewSession(&aws.Config{
 		// TODO Also set the remaining S3 connection details...
-		Region: &config.S3Config[0].Region,
+		Region: &config.Region,
 	}))
 
 	if err := view.Register([]*view.View{

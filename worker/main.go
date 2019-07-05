@@ -31,6 +31,15 @@ func main() {
 		log.Fatal("-s is a mandatory parameter - please specify the server IP and Port")
 	}
 
+	for {
+		err := connectToServer(serverAddress)
+		if err != nil {
+			log.WithError(err).Fatal("Issues with server connection")
+		}
+	}
+}
+
+func connectToServer(serverAddress string) error {
 	conn, err := net.Dial("tcp", serverAddress)
 	if err != nil {
 		log.WithError(err).Fatal("Could not connect to the server")
@@ -44,25 +53,37 @@ func main() {
 	for {
 		err := decoder.Decode(&response)
 		if err != nil {
-			log.WithField("message", response).WithError(err).Error("Server responded unusually - dropping")
+			log.WithField("message", response).WithError(err).Error("Server responded unusually - reconnecting")
 			conn.Close()
-			return
+			return nil
 		}
 		log.Tracef("Response: %+v", response)
+		Workqueue := &Workqueue{
+			Queue: &[]WorkItem{},
+		}
 		switch response.Message {
 		case "init":
 			config = *response.Config
 			log.Info("Got config from server - starting preparations now")
+
+			InitS3(*config.S3Config)
+			fillWorkqueue(config.Test, Workqueue)
+
+			for _, work := range *Workqueue.Queue {
+				work.Prepare()
+			}
+
 			encoder.Encode(common.WorkerMessage{Message: "preparations done"})
 		case "start work":
-			if config == (common.WorkerConf{}) {
-				log.Fatal("Was instructed to start work - but my config is empty - bailing")
-				return
+			if config == (common.WorkerConf{}) || len(*Workqueue.Queue) == 0 {
+				log.Fatal("Was instructed to start work - but the preparation step is incomplete - reconnecting")
+				return nil
 			}
 			log.Info("Starting to work")
+			PerfTest(config.Test, Workqueue)
 			encoder.Encode(common.WorkerMessage{Message: "work done"})
-			// TODO return to being a ready worker
-			return
+			// Work is done - return to being a ready worker by reconnecting
+			return nil
 		}
 	}
 }
@@ -72,40 +93,18 @@ func generateRandomBytes(size uint64) *[]byte {
 	random := make([]byte, size)
 	n, err := rand.Read(random)
 	if err != nil {
-		log.Fatal("I had issues getting my random bytes initialized")
+		log.WithError(err).Fatal("I had issues getting my random bytes initialized")
 	}
 	log.Tracef("Generated %d random bytes in %v", n, time.Since(now))
 	return &random
 }
 
 // PerfTest runs a performance test as configured in testConfig
-func PerfTest(testConfig *common.TestCaseConfiguration) {
-	Workqueue := &common.Workqueue{
-		Queue: &[]common.WorkItem{},
-	}
-	if testConfig.ReadWeight > 0 {
-		Workqueue.OperationValues = append(Workqueue.OperationValues, common.KV{Key: "read"})
-	}
-	if testConfig.WriteWeight > 0 {
-		Workqueue.OperationValues = append(Workqueue.OperationValues, common.KV{Key: "write"})
-	}
-	if testConfig.ListWeight > 0 {
-		Workqueue.OperationValues = append(Workqueue.OperationValues, common.KV{Key: "list"})
-	}
-	if testConfig.DeleteWeight > 0 {
-		Workqueue.OperationValues = append(Workqueue.OperationValues, common.KV{Key: "delete"})
-	}
-	fillWorkqueue(testConfig, Workqueue)
-
-	log.Info("Work preparation started")
-	for _, work := range *Workqueue.Queue {
-		work.Prepare()
-	}
-	log.Info("Work preparation finished")
-	workChannel := make(chan common.WorkItem, len(*Workqueue.Queue))
+func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue) {
+	workChannel := make(chan WorkItem, len(*Workqueue.Queue))
 	doneChannel := make(chan bool)
 	for worker := 0; worker < testConfig.ParallelClients; worker++ {
-		go common.DoWork(workChannel, doneChannel)
+		go DoWork(workChannel, doneChannel)
 	}
 	log.Infof("Started %d parallel clients", testConfig.ParallelClients)
 	if testConfig.Runtime != 0 {
@@ -127,21 +126,21 @@ func PerfTest(testConfig *common.TestCaseConfiguration) {
 	}
 }
 
-func workUntilTimeout(Workqueue *common.Workqueue, workChannel chan common.WorkItem, runtime time.Duration) {
+func workUntilTimeout(Workqueue *Workqueue, workChannel chan WorkItem, runtime time.Duration) {
 	timer := time.NewTimer(runtime)
 	for {
 		for _, work := range *Workqueue.Queue {
 			select {
 			case <-timer.C:
 				log.Debug("Reached Runtime end")
-				common.WorkCancel()
+				WorkCancel()
 				return
 			case workChannel <- work:
 			}
 		}
 		for _, work := range *Workqueue.Queue {
 			switch work.(type) {
-			case common.DeleteOperation:
+			case DeleteOperation:
 				log.Debug("Re-Running Work preparation for delete job started")
 				work.Prepare()
 				log.Debug("Delete preparation re-run finished")
@@ -150,14 +149,14 @@ func workUntilTimeout(Workqueue *common.Workqueue, workChannel chan common.WorkI
 	}
 }
 
-func workUntilOps(Workqueue *common.Workqueue, workChannel chan common.WorkItem, maxOps uint64, numberOfWorker int) {
+func workUntilOps(Workqueue *Workqueue, workChannel chan WorkItem, maxOps uint64, numberOfWorker int) {
 	currentOps := uint64(0)
 	for {
 		for _, work := range *Workqueue.Queue {
 			if currentOps >= maxOps {
 				log.Debug("Reached OpsDeadline ... waiting for workers to finish")
 				for worker := 0; worker < numberOfWorker; worker++ {
-					workChannel <- common.Stopper{}
+					workChannel <- Stopper{}
 				}
 				return
 			}
@@ -166,7 +165,7 @@ func workUntilOps(Workqueue *common.Workqueue, workChannel chan common.WorkItem,
 		}
 		for _, work := range *Workqueue.Queue {
 			switch work.(type) {
-			case common.DeleteOperation:
+			case DeleteOperation:
 				log.Debug("Re-Running Work preparation for delete job started")
 				work.Prepare()
 				log.Debug("Delete preparation re-run finished")
@@ -175,7 +174,20 @@ func workUntilOps(Workqueue *common.Workqueue, workChannel chan common.WorkItem,
 	}
 }
 
-func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *common.Workqueue) {
+func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue) {
+
+	if testConfig.ReadWeight > 0 {
+		Workqueue.OperationValues = append(Workqueue.OperationValues, KV{Key: "read"})
+	}
+	if testConfig.WriteWeight > 0 {
+		Workqueue.OperationValues = append(Workqueue.OperationValues, KV{Key: "write"})
+	}
+	if testConfig.ListWeight > 0 {
+		Workqueue.OperationValues = append(Workqueue.OperationValues, KV{Key: "list"})
+	}
+	if testConfig.DeleteWeight > 0 {
+		Workqueue.OperationValues = append(Workqueue.OperationValues, KV{Key: "delete"})
+	}
 
 	random := make(map[uint64]*[]byte, testConfig.Objects.NumberMax)
 	// Init random data (cannot be done in parallel)
@@ -194,11 +206,11 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *common.W
 			// Use xor to make them different
 			fastxor.Byte(objectContent, *random[object], byte(rand.Int()))
 
-			nextOp := common.GetNextOperation(Workqueue)
+			nextOp := GetNextOperation(Workqueue)
 			switch nextOp {
 			case "read":
-				common.IncreaseOperationValue(nextOp, 1/float64(testConfig.ReadWeight), Workqueue)
-				new := common.ReadOperation{
+				IncreaseOperationValue(nextOp, 1/float64(testConfig.ReadWeight), Workqueue)
+				new := ReadOperation{
 					Bucket:        fmt.Sprintf("%s%d", testConfig.BucketPrefix, bucket),
 					ObjectName:    fmt.Sprintf("%s%d", testConfig.ObjectPrefix, object),
 					ObjectSize:    objectSize,
@@ -206,8 +218,8 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *common.W
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
 			case "write":
-				common.IncreaseOperationValue(nextOp, 1/float64(testConfig.WriteWeight), Workqueue)
-				new := common.WriteOperation{
+				IncreaseOperationValue(nextOp, 1/float64(testConfig.WriteWeight), Workqueue)
+				new := WriteOperation{
 					Bucket:        fmt.Sprintf("%s%d", testConfig.BucketPrefix, bucket),
 					ObjectName:    fmt.Sprintf("%s%d", testConfig.ObjectPrefix, object),
 					ObjectSize:    objectSize,
@@ -215,8 +227,8 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *common.W
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
 			case "list":
-				common.IncreaseOperationValue(nextOp, 1/float64(testConfig.ListWeight), Workqueue)
-				new := common.ListOperation{
+				IncreaseOperationValue(nextOp, 1/float64(testConfig.ListWeight), Workqueue)
+				new := ListOperation{
 					Bucket:        fmt.Sprintf("%s%d", testConfig.BucketPrefix, bucket),
 					ObjectName:    fmt.Sprintf("%s%d", testConfig.ObjectPrefix, object),
 					ObjectSize:    objectSize,
@@ -224,8 +236,8 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *common.W
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
 			case "delete":
-				common.IncreaseOperationValue(nextOp, 1/float64(testConfig.DeleteWeight), Workqueue)
-				new := common.DeleteOperation{
+				IncreaseOperationValue(nextOp, 1/float64(testConfig.DeleteWeight), Workqueue)
+				new := DeleteOperation{
 					Bucket:        fmt.Sprintf("%s%d", testConfig.BucketPrefix, bucket),
 					ObjectName:    fmt.Sprintf("%s%d", testConfig.ObjectPrefix, object),
 					ObjectSize:    objectSize,
