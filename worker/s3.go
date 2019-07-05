@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -46,12 +47,16 @@ func InitS3(config common.S3Configuration) {
 	sess := session.Must(session.NewSession(&aws.Config{
 		HTTPClient: hc,
 		// TODO Also set the remaining S3 connection details...
-		Region: &config.Region,
+		Region:      &config.Region,
+		Credentials: credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
+		Endpoint:    &config.Endpoint,
 	}))
 	// Use this Session to do things that are hidden from the performance monitoring
 	housekeepingSess := session.Must(session.NewSession(&aws.Config{
 		// TODO Also set the remaining S3 connection details...
-		Region: &config.Region,
+		Region:      &config.Region,
+		Credentials: credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
+		Endpoint:    &config.Endpoint,
 	}))
 
 	if err := view.Register([]*view.View{
@@ -101,7 +106,7 @@ func putObject(service *s3.S3, objectName string, objectContent io.ReadSeeker, b
 			// by a context the CanceledErrorCode error code will be returned.
 			log.WithError(aerr).Errorf("Upload canceled due to timeout")
 		} else {
-			log.WithError(err).Errorf("Failed to upload object,")
+			log.WithError(err).WithField("object", objectName).WithField("bucket", bucket).Errorf("Failed to upload object,")
 		}
 		return err
 	}

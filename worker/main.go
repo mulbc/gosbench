@@ -50,6 +50,9 @@ func connectToServer(serverAddress string) error {
 	encoder.Encode("ready for work")
 
 	var response common.WorkerMessage
+	Workqueue := &Workqueue{
+		Queue: &[]WorkItem{},
+	}
 	for {
 		err := decoder.Decode(&response)
 		if err != nil {
@@ -58,21 +61,18 @@ func connectToServer(serverAddress string) error {
 			return nil
 		}
 		log.Tracef("Response: %+v", response)
-		Workqueue := &Workqueue{
-			Queue: &[]WorkItem{},
-		}
 		switch response.Message {
 		case "init":
 			config = *response.Config
 			log.Info("Got config from server - starting preparations now")
 
 			InitS3(*config.S3Config)
-			fillWorkqueue(config.Test, Workqueue)
+			fillWorkqueue(config.Test, Workqueue, config.WorkerID)
 
 			for _, work := range *Workqueue.Queue {
 				work.Prepare()
 			}
-
+			log.Info("Preparations finished - waiting on server to start work")
 			encoder.Encode(common.WorkerMessage{Message: "preparations done"})
 		case "start work":
 			if config == (common.WorkerConf{}) || len(*Workqueue.Queue) == 0 {
@@ -174,7 +174,7 @@ func workUntilOps(Workqueue *Workqueue, workChannel chan WorkItem, maxOps uint64
 	}
 }
 
-func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue) {
+func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, workerID string) {
 
 	if testConfig.ReadWeight > 0 {
 		Workqueue.OperationValues = append(Workqueue.OperationValues, KV{Key: "read"})
@@ -211,8 +211,8 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 			case "read":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.ReadWeight), Workqueue)
 				new := ReadOperation{
-					Bucket:        fmt.Sprintf("%s%d", testConfig.BucketPrefix, bucket),
-					ObjectName:    fmt.Sprintf("%s%d", testConfig.ObjectPrefix, object),
+					Bucket:        fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
+					ObjectName:    fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
 					ObjectSize:    objectSize,
 					ObjectContent: &objectContent,
 				}
@@ -220,8 +220,8 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 			case "write":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.WriteWeight), Workqueue)
 				new := WriteOperation{
-					Bucket:        fmt.Sprintf("%s%d", testConfig.BucketPrefix, bucket),
-					ObjectName:    fmt.Sprintf("%s%d", testConfig.ObjectPrefix, object),
+					Bucket:        fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
+					ObjectName:    fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
 					ObjectSize:    objectSize,
 					ObjectContent: &objectContent,
 				}
@@ -229,8 +229,8 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 			case "list":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.ListWeight), Workqueue)
 				new := ListOperation{
-					Bucket:        fmt.Sprintf("%s%d", testConfig.BucketPrefix, bucket),
-					ObjectName:    fmt.Sprintf("%s%d", testConfig.ObjectPrefix, object),
+					Bucket:        fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
+					ObjectName:    fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
 					ObjectSize:    objectSize,
 					ObjectContent: &objectContent,
 				}
