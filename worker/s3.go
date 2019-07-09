@@ -50,6 +50,7 @@ func InitS3(config common.S3Configuration) {
 		Region:      &config.Region,
 		Credentials: credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
 		Endpoint:    &config.Endpoint,
+		S3ForcePathStyle: aws.Bool(true),
 	}))
 	// Use this Session to do things that are hidden from the performance monitoring
 	housekeepingSess := session.Must(session.NewSession(&aws.Config{
@@ -57,6 +58,7 @@ func InitS3(config common.S3Configuration) {
 		Region:      &config.Region,
 		Credentials: credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
 		Endpoint:    &config.Endpoint,
+		S3ForcePathStyle: aws.Bool(true),
 	}))
 
 	if err := view.Register([]*view.View{
