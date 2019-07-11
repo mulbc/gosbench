@@ -1,0 +1,24 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v2.2.3
+  hooks:
+  -   id: trailing-whitespace
+  -   id: end-of-file-fixer
+  -   id: check-yaml
+  -   id: check-added-large-files
+  -   id: check-case-conflict
+  -   id: check-executables-have-shebangs
+  -   id: check-merge-conflict
+  -   id: check-yaml
+  -   id: detect-aws-credentials
+  -   id: trailing-whitespace
+- repo: https://github.com/syntaqx/git-hooks
+  rev: v0.0.16
+  hooks:
+    - id: forbid-binary
+    - id: go-fmt
+    - id: go-mod-tidy
+    - id: shellcheck
+    - id: shfmt

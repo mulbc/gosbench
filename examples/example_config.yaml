@@ -1,0 +1,67 @@
+---
+
+# Ignored for now - using ~/.aws/credentials ;)
+s3_config:
+  - access_key: abc
+    secret_key: as
+    region: eu-central-1
+    endpoint:
+    timeout: 60s
+  - access_key: def
+    secret_key: as
+    region: eu-central-2
+    endpoint:
+    timeout: 60s
+  - access_key: ghi
+    secret_key: as
+    region: eu-central-3
+    endpoint:
+    timeout: 60s
+
+# For generating annotations when we start/stop testcases
+# https://grafana.com/docs/http_api/annotations/#create-annotation
+grafana_config:
+  endpoint: http://grafana
+  username: admin
+  password: grafana
+
+tests:
+  - read_weight: 20
+    write_weight: 80
+    delete_weight: 0
+    list_weight: 0
+    objects:
+      size_min: 5
+      size_max: 100
+      part_size: 0
+      # distribution: constant, random, sequential
+      size_distribution: random
+      unit: KB
+      number_min: 10
+      number_max: 10
+      # distribution: constant, random, sequential
+      number_distribution: constant
+    buckets:
+      number_min: 1
+      number_max: 10
+      # distribution: constant, random, sequential
+      number_distribution: constant
+    # Name prefix for buckets and objects
+    bucket_prefix: 1255gosbench-
+    object_prefix: obj
+    # End after a set amount of time
+    # Runtime in time.Duration
+    stop_with_runtime:
+    # End after a set amount of operations
+    stop_with_ops: 10
+    # Number of s3 performance test servers to run in parallel
+    workers: 2
+    # Set wheter workers share the same buckets or not
+    # If set to True - bucket names will have the worker # appended
+    workers_share_buckets: True
+    # Number of requests processed in parallel by each worker
+    parallel_clients: 3
+    # Remove all generated buckets and its content after run
+    clean_after: True
+
+...

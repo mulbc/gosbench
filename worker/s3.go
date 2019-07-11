@@ -47,17 +47,17 @@ func InitS3(config common.S3Configuration) {
 	sess := session.Must(session.NewSession(&aws.Config{
 		HTTPClient: hc,
 		// TODO Also set the remaining S3 connection details...
-		Region:      &config.Region,
-		Credentials: credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
-		Endpoint:    &config.Endpoint,
+		Region:           &config.Region,
+		Credentials:      credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
+		Endpoint:         &config.Endpoint,
 		S3ForcePathStyle: aws.Bool(true),
 	}))
 	// Use this Session to do things that are hidden from the performance monitoring
 	housekeepingSess := session.Must(session.NewSession(&aws.Config{
 		// TODO Also set the remaining S3 connection details...
-		Region:      &config.Region,
-		Credentials: credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
-		Endpoint:    &config.Endpoint,
+		Region:           &config.Region,
+		Credentials:      credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
+		Endpoint:         &config.Endpoint,
 		S3ForcePathStyle: aws.Bool(true),
 	}))
 
