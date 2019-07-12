@@ -47,22 +47,11 @@ func loadConfigFromFile() common.Testconf {
 }
 
 func main() {
-	// TODO:
-	//  * Init gRPC
-	//  * Create Grafana annotations when starting/stopping testcase
-	//  *
-	//
 	config := loadConfigFromFile()
 	common.CheckConfig(config)
 
 	readyWorkers = make(chan *net.Conn)
 	defer close(readyWorkers)
-
-	// common.InitS3(config)
-	// for _, test := range config.Tests {
-	// TODO send test to worker(s)
-	// common.PerfTest(test)
-	// }
 
 	// Listen on TCP port 2000 on all available unicast and
 	// anycast IP addresses of the local system.

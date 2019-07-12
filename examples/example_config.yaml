@@ -5,17 +5,14 @@ s3_config:
     secret_key: as
     region: eu-central-1
     endpoint:
-    timeout: 60s
   - access_key: def
     secret_key: as
     region: eu-central-2
     endpoint:
-    timeout: 60s
   - access_key: ghi
     secret_key: as
     region: eu-central-3
     endpoint:
-    timeout: 60s
 
 # For generating annotations when we start/stop testcases
 # https://grafana.com/docs/http_api/annotations/#create-annotation

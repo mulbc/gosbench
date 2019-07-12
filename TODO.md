@@ -4,7 +4,7 @@
 
 * Never exit when in preparation step as this could deadlock the server
 * Implement S3 timeout variable
-* Change S3 config to generic []aws.Config{} type
+* ~~Change S3 config to generic []aws.Config{} type~~ Not parseable from Yaml
 * Add second exporter that is measuring exec time of AWS functions instead of using the HTTP client
 
 ## Server TODOs
