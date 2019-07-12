@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.InfoLevel)
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
 	})
@@ -116,6 +116,7 @@ func scheduleTests(config common.Testconf) {
 			<-doneChannel
 		}
 		log.WithField("test", testNumber).Info("All workers have finished preparations - starting performance test")
+		startTime := time.Now().UTC().UnixNano() / int64(1000000)
 		for worker := 0; worker < test.Workers; worker++ {
 			continueWorkers <- true
 		}
@@ -124,6 +125,8 @@ func scheduleTests(config common.Testconf) {
 			<-doneChannel
 		}
 		log.WithField("test", testNumber).Info("All workers have finished the performance test - continuing with next test")
+		stopTime := time.Now().UTC().UnixNano() / int64(1000000)
+		log.WithField("test", testNumber).Infof("GRAFANA: ?from=%d&to=%d", startTime, stopTime)
 	}
 	log.Info("All performance tests finished - idling so that you can get my performance data")
 }

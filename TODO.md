@@ -10,8 +10,6 @@
 ## Server TODOs
 
 * Set Grafana annotations when tests start and when they end (at best as region)
-* Log when tests start and stop
-  * So that we can have a Grafana overview page parser with links to dashboards and the right timeframe
 * Add timeout when waiting for workers (or whenever we could deadlock)
 * Add sleep to calm disks before measuring and for Grafana annotations
   * Add sleep between tests
