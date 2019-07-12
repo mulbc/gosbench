@@ -118,6 +118,8 @@ func scheduleTests(config common.Testconf) {
 		}
 		log.WithField("test", testNumber).Info("All workers have finished preparations - starting performance test")
 		startTime := time.Now().UTC().UnixNano() / int64(1000000)
+		// Add sleep after prep phase so that drives can relax
+		time.Sleep(5 * time.Second)
 		for worker := 0; worker < test.Workers; worker++ {
 			continueWorkers <- true
 		}
