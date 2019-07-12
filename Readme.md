@@ -31,3 +31,7 @@ You can visualize this data in Grafana. To get an overview of what the provided 
   * [More info](https://pre-commit.com/)
 * We are using Go modules in this repository - read up on it [here](https://blog.golang.org/using-go-modules)
 * Check out the open [TODOs](TODO.md) for hints on what to work on
+
+## Known issues
+
+* Workers will error out when the config's min value is larger than the max value (even for a constant distribution)
