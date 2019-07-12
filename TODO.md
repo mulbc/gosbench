@@ -14,7 +14,6 @@
 * Add sleep to calm disks before measuring and for Grafana annotations
   * Add sleep between tests
   * Add sleep after prep phase
-* Stop after 30s when all tests are finished
 
 ## Misc
 

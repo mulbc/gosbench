@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net"
+	"os"
 	"time"
 
 	"github.com/mulbc/gosbench/common"
@@ -128,7 +129,9 @@ func scheduleTests(config common.Testconf) {
 		stopTime := time.Now().UTC().UnixNano() / int64(1000000)
 		log.WithField("test", testNumber).Infof("GRAFANA: ?from=%d&to=%d", startTime, stopTime)
 	}
-	log.Info("All performance tests finished - idling so that you can get my performance data")
+	log.Info("All performance tests finished")
+	time.Sleep(30 * time.Second)
+	os.Exit(0)
 }
 
 func executeTestOnWorker(conn *net.Conn, config *common.WorkerConf, doneChannel chan bool, continueWorkers chan bool) {
