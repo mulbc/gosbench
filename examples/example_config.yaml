@@ -1,6 +1,5 @@
 ---
 
-# Ignored for now - using ~/.aws/credentials ;)
 s3_config:
   - access_key: abc
     secret_key: as
