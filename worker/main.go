@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -118,6 +119,7 @@ func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, wo
 }
 
 func workUntilTimeout(Workqueue *Workqueue, workChannel chan WorkItem, runtime time.Duration) {
+	workContext, WorkCancel = context.WithCancel(context.Background())
 	timer := time.NewTimer(runtime)
 	for {
 		for _, work := range *Workqueue.Queue {

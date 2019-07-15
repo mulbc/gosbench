@@ -75,7 +75,7 @@ func GetNextOperation(Queue *Workqueue) string {
 }
 
 func init() {
-	workContext, WorkCancel = context.WithCancel(context.Background())
+	workContext = context.Background()
 }
 
 var workContext context.Context
