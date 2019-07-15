@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/rand"
 	"sort"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -19,34 +21,30 @@ type WorkItem interface {
 
 // ReadOperation stands for a read operation
 type ReadOperation struct {
-	Bucket        string
-	ObjectName    string
-	ObjectSize    uint64
-	ObjectContent *[]byte
+	Bucket     string
+	ObjectName string
+	ObjectSize uint64
 }
 
 // WriteOperation stands for a write operation
 type WriteOperation struct {
-	Bucket        string
-	ObjectName    string
-	ObjectSize    uint64
-	ObjectContent *[]byte
+	Bucket     string
+	ObjectName string
+	ObjectSize uint64
 }
 
 // ListOperation stands for a list operation
 type ListOperation struct {
-	Bucket        string
-	ObjectName    string
-	ObjectSize    uint64
-	ObjectContent *[]byte
+	Bucket     string
+	ObjectName string
+	ObjectSize uint64
 }
 
 // DeleteOperation stands for a delete operation
 type DeleteOperation struct {
-	Bucket        string
-	ObjectName    string
-	ObjectSize    uint64
-	ObjectContent *[]byte
+	Bucket     string
+	ObjectName string
+	ObjectSize uint64
 }
 
 // Stopper marks the end of a workqueue when using
@@ -103,7 +101,7 @@ func (op ReadOperation) Prepare() error {
 	if err != nil {
 		return err
 	}
-	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(*op.ObjectContent), op.Bucket)
+	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
 // Prepare prepares the execution of the WriteOperation
@@ -119,7 +117,7 @@ func (op ListOperation) Prepare() error {
 	if err != nil {
 		return err
 	}
-	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(*op.ObjectContent), op.Bucket)
+	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
 // Prepare prepares the execution of the DeleteOperation
@@ -129,7 +127,7 @@ func (op DeleteOperation) Prepare() error {
 	if err != nil {
 		return err
 	}
-	return deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
+	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
 // Prepare does nothing here
@@ -146,7 +144,7 @@ func (op ReadOperation) Do() error {
 // Do executes the actual work of the WriteOperation
 func (op WriteOperation) Do() error {
 	log.Debug("Doing WriteOperation")
-	return putObject(svc, op.ObjectName, bytes.NewReader(*op.ObjectContent), op.Bucket)
+	return putObject(svc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
 // Do executes the actual work of the ListOperation
@@ -222,4 +220,15 @@ func DoWork(workChannel chan WorkItem, doneChannel chan bool) {
 			work.Do()
 		}
 	}
+}
+
+func generateRandomBytes(size uint64) []byte {
+	now := time.Now()
+	random := make([]byte, size)
+	n, err := rand.Read(random)
+	if err != nil {
+		log.WithError(err).Fatal("I had issues getting my random bytes initialized")
+	}
+	log.Tracef("Generated %d random bytes in %v", n, time.Since(now))
+	return random
 }

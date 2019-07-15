@@ -8,7 +8,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/lukechampine/fastxor"
 	"github.com/mulbc/gosbench/common"
 	log "github.com/sirupsen/logrus"
 )
@@ -86,17 +85,6 @@ func connectToServer(serverAddress string) error {
 			return nil
 		}
 	}
-}
-
-func generateRandomBytes(size uint64) *[]byte {
-	now := time.Now()
-	random := make([]byte, size)
-	n, err := rand.Read(random)
-	if err != nil {
-		log.WithError(err).Fatal("I had issues getting my random bytes initialized")
-	}
-	log.Tracef("Generated %d random bytes in %v", n, time.Since(now))
-	return &random
 }
 
 // PerfTest runs a performance test as configured in testConfig
@@ -189,59 +177,44 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 		Workqueue.OperationValues = append(Workqueue.OperationValues, KV{Key: "delete"})
 	}
 
-	random := make(map[uint64]*[]byte, testConfig.Objects.NumberMax)
-	// Init random data (cannot be done in parallel)
-	for object := uint64(0); object < testConfig.Objects.NumberMax; object++ {
-		random[object] = generateRandomBytes(testConfig.Objects.SizeMax)
-	}
-
 	bucketCount := common.EvaluateDistribution(testConfig.Buckets.NumberMin, testConfig.Buckets.NumberMax, &testConfig.Buckets.NumberLast, 1, testConfig.Buckets.NumberDistribution)
 	for bucket := uint64(0); bucket < bucketCount; bucket++ {
 		objectCount := common.EvaluateDistribution(testConfig.Objects.NumberMin, testConfig.Objects.NumberMax, &testConfig.Objects.NumberLast, 1, testConfig.Objects.NumberDistribution)
 		for object := uint64(0); object < objectCount; object++ {
 			objectSize := common.EvaluateDistribution(testConfig.Objects.SizeMin, testConfig.Objects.SizeMax, &testConfig.Objects.SizeLast, 1, testConfig.Objects.SizeDistribution)
-			objectContent := make([]byte, objectSize)
-
-			// We reuse the same random []byte for every bucket
-			// Use xor to make them different
-			fastxor.Byte(objectContent, *random[object], byte(rand.Int()))
 
 			nextOp := GetNextOperation(Workqueue)
 			switch nextOp {
 			case "read":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.ReadWeight), Workqueue)
 				new := ReadOperation{
-					Bucket:        fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
-					ObjectName:    fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
-					ObjectSize:    objectSize,
-					ObjectContent: &objectContent,
+					Bucket:     fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
+					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
+					ObjectSize: objectSize,
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
 			case "write":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.WriteWeight), Workqueue)
 				new := WriteOperation{
-					Bucket:        fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
-					ObjectName:    fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
-					ObjectSize:    objectSize,
-					ObjectContent: &objectContent,
+					Bucket:     fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
+					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
+					ObjectSize: objectSize,
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
 			case "list":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.ListWeight), Workqueue)
 				new := ListOperation{
-					Bucket:        fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
-					ObjectName:    fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
-					ObjectSize:    objectSize,
-					ObjectContent: &objectContent,
+					Bucket:     fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
+					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
+					ObjectSize: objectSize,
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
 			case "delete":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.DeleteWeight), Workqueue)
 				new := DeleteOperation{
-					Bucket:        fmt.Sprintf("%s%d", testConfig.BucketPrefix, bucket),
-					ObjectName:    fmt.Sprintf("%s%d", testConfig.ObjectPrefix, object),
-					ObjectSize:    objectSize,
-					ObjectContent: &objectContent,
+					Bucket:     fmt.Sprintf("%s%d", testConfig.BucketPrefix, bucket),
+					ObjectName: fmt.Sprintf("%s%d", testConfig.ObjectPrefix, object),
+					ObjectSize: objectSize,
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
 			}
