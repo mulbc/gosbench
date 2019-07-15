@@ -79,7 +79,7 @@ func connectToServer(serverAddress string) error {
 				return nil
 			}
 			log.Info("Starting to work")
-			PerfTest(config.Test, Workqueue)
+			PerfTest(config.Test, Workqueue, config.WorkerID)
 			encoder.Encode(common.WorkerMessage{Message: "work done"})
 			// Work is done - return to being a ready worker by reconnecting
 			return nil
@@ -88,7 +88,7 @@ func connectToServer(serverAddress string) error {
 }
 
 // PerfTest runs a performance test as configured in testConfig
-func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue) {
+func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, workerID string) {
 	workChannel := make(chan WorkItem, len(*Workqueue.Queue))
 	doneChannel := make(chan bool)
 	for worker := 0; worker < testConfig.ParallelClients; worker++ {
@@ -109,6 +109,9 @@ func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue) {
 		log.Info("Housekeeping started")
 		for _, work := range *Workqueue.Queue {
 			work.Clean()
+		}
+		for bucket := uint64(0); bucket < testConfig.Buckets.NumberMax; bucket++ {
+			deleteBucket(housekeepingSvc, fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket))
 		}
 		log.Info("Housekeeping finished")
 	}

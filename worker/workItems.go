@@ -154,34 +154,22 @@ func (op Stopper) Do() error {
 
 // Clean removes the objects and buckets left from the previous ReadOperation
 func (op ReadOperation) Clean() error {
-	err := deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
-	if err != nil {
-		return err
-	}
-	return deleteBucket(housekeepingSvc, op.Bucket)
+	return deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
 }
 
 // Clean removes the objects and buckets left from the previous WriteOperation
 func (op WriteOperation) Clean() error {
-	err := deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
-	if err != nil {
-		return err
-	}
-	return deleteBucket(housekeepingSvc, op.Bucket)
+	return deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
 }
 
 // Clean removes the objects and buckets left from the previous ListOperation
 func (op ListOperation) Clean() error {
-	err := deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
-	if err != nil {
-		return err
-	}
-	return deleteBucket(housekeepingSvc, op.Bucket)
+	return deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
 }
 
 // Clean removes the objects and buckets left from the previous DeleteOperation
 func (op DeleteOperation) Clean() error {
-	return deleteBucket(housekeepingSvc, op.Bucket)
+	return nil
 }
 
 // Clean does nothing here
