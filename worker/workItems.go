@@ -97,36 +97,24 @@ func IncreaseOperationValue(operation string, value float64, Queue *Workqueue) e
 // Prepare prepares the execution of the ReadOperation
 func (op ReadOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing ReadOperation")
-	err := createBucket(housekeepingSvc, op.Bucket)
-	if err != nil {
-		return err
-	}
 	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
 // Prepare prepares the execution of the WriteOperation
 func (op WriteOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing WriteOperation")
-	return createBucket(housekeepingSvc, op.Bucket)
+	return nil
 }
 
 // Prepare prepares the execution of the ListOperation
 func (op ListOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing ListOperation")
-	err := createBucket(housekeepingSvc, op.Bucket)
-	if err != nil {
-		return err
-	}
 	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
 // Prepare prepares the execution of the DeleteOperation
 func (op DeleteOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing DeleteOperation")
-	err := createBucket(housekeepingSvc, op.Bucket)
-	if err != nil {
-		return err
-	}
 	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
