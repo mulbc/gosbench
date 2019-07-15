@@ -221,8 +221,8 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 			case "delete":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.DeleteWeight), Workqueue)
 				new := DeleteOperation{
-					Bucket:     fmt.Sprintf("%s%d", testConfig.BucketPrefix, bucket),
-					ObjectName: fmt.Sprintf("%s%d", testConfig.ObjectPrefix, object),
+					Bucket:     fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
+					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
 					ObjectSize: objectSize,
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
