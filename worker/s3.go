@@ -22,10 +22,9 @@ import (
 
 var svc, housekeepingSvc *s3.S3
 var ctx context.Context
+var hc *http.Client
 
-// InitS3 initialises the S3 session
-// Also starts the Prometheus exporter on Port 8888
-func InitS3(config common.S3Configuration) {
+func init() {
 	// Then create the prometheus stat exporter
 	pe, err := prometheus.NewExporter(prometheus.Options{
 		Namespace: "gosbench",
@@ -36,30 +35,7 @@ func InitS3(config common.S3Configuration) {
 	if err != nil {
 		log.WithError(err).Fatalf("Failed to create the Prometheus exporter:")
 	}
-
-	// All clients require a Session. The Session provides the client with
-	// shared configuration such as region, endpoint, and credentials. A
-	// Session should be shared where possible to take advantage of
-	// configuration and credential caching. See the session package for
-	// more information.
-	hc := &http.Client{Transport: new(ochttp.Transport)}
-
-	sess := session.Must(session.NewSession(&aws.Config{
-		HTTPClient: hc,
-		// TODO Also set the remaining S3 connection details...
-		Region:           &config.Region,
-		Credentials:      credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
-		Endpoint:         &config.Endpoint,
-		S3ForcePathStyle: aws.Bool(true),
-	}))
-	// Use this Session to do things that are hidden from the performance monitoring
-	housekeepingSess := session.Must(session.NewSession(&aws.Config{
-		// TODO Also set the remaining S3 connection details...
-		Region:           &config.Region,
-		Credentials:      credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
-		Endpoint:         &config.Endpoint,
-		S3ForcePathStyle: aws.Bool(true),
-	}))
+	hc = &http.Client{Transport: new(ochttp.Transport)}
 
 	if err := view.Register([]*view.View{
 		ochttp.ClientSentBytesDistribution,
@@ -78,6 +54,34 @@ func InitS3(config common.S3Configuration) {
 			log.WithError(err).Fatalf("Failed to run Prometheus /metrics endpoint:")
 		}
 	}()
+
+}
+
+// InitS3 initialises the S3 session
+// Also starts the Prometheus exporter on Port 8888
+func InitS3(config common.S3Configuration) {
+	// All clients require a Session. The Session provides the client with
+	// shared configuration such as region, endpoint, and credentials. A
+	// Session should be shared where possible to take advantage of
+	// configuration and credential caching. See the session package for
+	// more information.
+
+	sess := session.Must(session.NewSession(&aws.Config{
+		HTTPClient: hc,
+		// TODO Also set the remaining S3 connection details...
+		Region:           &config.Region,
+		Credentials:      credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
+		Endpoint:         &config.Endpoint,
+		S3ForcePathStyle: aws.Bool(true),
+	}))
+	// Use this Session to do things that are hidden from the performance monitoring
+	housekeepingSess := session.Must(session.NewSession(&aws.Config{
+		// TODO Also set the remaining S3 connection details...
+		Region:           &config.Region,
+		Credentials:      credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
+		Endpoint:         &config.Endpoint,
+		S3ForcePathStyle: aws.Bool(true),
+	}))
 
 	// Create a new instance of the service's client with a Session.
 	// Optional aws.Config values can also be provided as variadic arguments

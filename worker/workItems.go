@@ -75,7 +75,7 @@ func GetNextOperation(Queue *Workqueue) string {
 }
 
 func init() {
-	workContext, WorkCancel = context.WithCancel(context.Background())
+	workContext = context.Background()
 }
 
 var workContext context.Context
@@ -97,36 +97,24 @@ func IncreaseOperationValue(operation string, value float64, Queue *Workqueue) e
 // Prepare prepares the execution of the ReadOperation
 func (op ReadOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing ReadOperation")
-	err := createBucket(housekeepingSvc, op.Bucket)
-	if err != nil {
-		return err
-	}
 	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
 // Prepare prepares the execution of the WriteOperation
 func (op WriteOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing WriteOperation")
-	return createBucket(housekeepingSvc, op.Bucket)
+	return nil
 }
 
 // Prepare prepares the execution of the ListOperation
 func (op ListOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing ListOperation")
-	err := createBucket(housekeepingSvc, op.Bucket)
-	if err != nil {
-		return err
-	}
 	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
 // Prepare prepares the execution of the DeleteOperation
 func (op DeleteOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing DeleteOperation")
-	err := createBucket(housekeepingSvc, op.Bucket)
-	if err != nil {
-		return err
-	}
 	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
@@ -166,34 +154,22 @@ func (op Stopper) Do() error {
 
 // Clean removes the objects and buckets left from the previous ReadOperation
 func (op ReadOperation) Clean() error {
-	err := deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
-	if err != nil {
-		return err
-	}
-	return deleteBucket(housekeepingSvc, op.Bucket)
+	return deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
 }
 
 // Clean removes the objects and buckets left from the previous WriteOperation
 func (op WriteOperation) Clean() error {
-	err := deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
-	if err != nil {
-		return err
-	}
-	return deleteBucket(housekeepingSvc, op.Bucket)
+	return deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
 }
 
 // Clean removes the objects and buckets left from the previous ListOperation
 func (op ListOperation) Clean() error {
-	err := deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
-	if err != nil {
-		return err
-	}
-	return deleteBucket(housekeepingSvc, op.Bucket)
+	return deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
 }
 
 // Clean removes the objects and buckets left from the previous DeleteOperation
 func (op DeleteOperation) Clean() error {
-	return deleteBucket(housekeepingSvc, op.Bucket)
+	return nil
 }
 
 // Clean does nothing here

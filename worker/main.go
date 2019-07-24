@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -15,7 +16,7 @@ import (
 var config common.WorkerConf
 
 func init() {
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.InfoLevel)
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
 	})
@@ -79,7 +80,7 @@ func connectToServer(serverAddress string) error {
 				return nil
 			}
 			log.Info("Starting to work")
-			PerfTest(config.Test, Workqueue)
+			PerfTest(config.Test, Workqueue, config.WorkerID)
 			encoder.Encode(common.WorkerMessage{Message: "work done"})
 			// Work is done - return to being a ready worker by reconnecting
 			return nil
@@ -88,7 +89,7 @@ func connectToServer(serverAddress string) error {
 }
 
 // PerfTest runs a performance test as configured in testConfig
-func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue) {
+func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, workerID string) {
 	workChannel := make(chan WorkItem, len(*Workqueue.Queue))
 	doneChannel := make(chan bool)
 	for worker := 0; worker < testConfig.ParallelClients; worker++ {
@@ -110,11 +111,15 @@ func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue) {
 		for _, work := range *Workqueue.Queue {
 			work.Clean()
 		}
+		for bucket := uint64(0); bucket < testConfig.Buckets.NumberMax; bucket++ {
+			deleteBucket(housekeepingSvc, fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket))
+		}
 		log.Info("Housekeeping finished")
 	}
 }
 
 func workUntilTimeout(Workqueue *Workqueue, workChannel chan WorkItem, runtime time.Duration) {
+	workContext, WorkCancel = context.WithCancel(context.Background())
 	timer := time.NewTimer(runtime)
 	for {
 		for _, work := range *Workqueue.Queue {
@@ -179,6 +184,10 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 
 	bucketCount := common.EvaluateDistribution(testConfig.Buckets.NumberMin, testConfig.Buckets.NumberMax, &testConfig.Buckets.NumberLast, 1, testConfig.Buckets.NumberDistribution)
 	for bucket := uint64(0); bucket < bucketCount; bucket++ {
+		err := createBucket(housekeepingSvc, fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket))
+		if err != nil {
+			log.WithError(err).WithField("bucket", fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket)).Error("Error when creating bucket")
+		}
 		objectCount := common.EvaluateDistribution(testConfig.Objects.NumberMin, testConfig.Objects.NumberMax, &testConfig.Objects.NumberLast, 1, testConfig.Objects.NumberDistribution)
 		for object := uint64(0); object < objectCount; object++ {
 			objectSize := common.EvaluateDistribution(testConfig.Objects.SizeMin, testConfig.Objects.SizeMax, &testConfig.Objects.SizeLast, 1, testConfig.Objects.SizeDistribution)
@@ -212,8 +221,8 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 			case "delete":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.DeleteWeight), Workqueue)
 				new := DeleteOperation{
-					Bucket:     fmt.Sprintf("%s%d", testConfig.BucketPrefix, bucket),
-					ObjectName: fmt.Sprintf("%s%d", testConfig.ObjectPrefix, object),
+					Bucket:     fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
+					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
 					ObjectSize: objectSize,
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
