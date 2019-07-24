@@ -101,6 +101,8 @@ func putObject(service *s3.S3, objectName string, objectContent io.ReadSeeker, b
 		Bucket: &bucket,
 		Key:    &objectName,
 		Body:   objectContent,
+	}, func(d *s3manager.Uploader) {
+		d.MaxUploadParts = 1
 	})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == request.CanceledErrorCode {
@@ -161,6 +163,8 @@ func getObject(service *s3.S3, objectName string, bucket string) error {
 	_, err := downloader.DownloadWithContext(ctx, buf, &s3.GetObjectInput{
 		Bucket: &bucket,
 		Key:    &objectName,
+	}, func(d *s3manager.Downloader) {
+		d.PartSize = 64 * 1024 * 1024 // 64MB parts
 	})
 	return err
 }
