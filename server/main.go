@@ -22,25 +22,21 @@ func init() {
 		FullTimestamp: true,
 	})
 	rand.Seed(time.Now().UnixNano())
+
+	flag.StringVar(&configFileLocation, "c", "", "Config file describing test run")
+	flag.Parse()
+	// Only demand this flag if we are not running go test
+	if configFileLocation == "" && flag.Lookup("test.v") == nil {
+		log.Fatal("-c is a mandatory parameter - please specify the config file")
+	}
 }
 
 var configFileLocation string
 var readyWorkers chan *net.Conn
 
-func loadConfigFromFile() common.Testconf {
-	flag.StringVar(&configFileLocation, "c", "", "Config file describing test run")
-	flag.Parse()
-	if configFileLocation == "" {
-		log.Fatal("-c is a mandatory parameter - please specify the config file")
-	}
-
-	configFileContent, err := ioutil.ReadFile(configFileLocation)
-	if err != nil {
-		log.WithError(err).Fatalf("Error reading config file:")
-	}
-
+func loadConfigFromFile(configFileContent []byte) common.Testconf {
 	var config common.Testconf
-	err = yaml.Unmarshal(configFileContent, &config)
+	err := yaml.Unmarshal(configFileContent, &config)
 	if err != nil {
 		log.WithError(err).Fatalf("Error unmarshaling config file:")
 	}
@@ -48,7 +44,11 @@ func loadConfigFromFile() common.Testconf {
 }
 
 func main() {
-	config := loadConfigFromFile()
+	configFileContent, err := ioutil.ReadFile(configFileLocation)
+	if err != nil {
+		log.WithError(err).Fatalf("Error reading config file:")
+	}
+	config := loadConfigFromFile(configFileContent)
 	common.CheckConfig(config)
 
 	readyWorkers = make(chan *net.Conn)
