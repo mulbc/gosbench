@@ -17,22 +17,31 @@ import (
 )
 
 func init() {
-	log.SetLevel(log.InfoLevel)
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
 	})
 	rand.Seed(time.Now().UnixNano())
 
 	flag.StringVar(&configFileLocation, "c", "", "Config file describing test run")
+	flag.BoolVar(&debug, "d", false, "enable debug log output")
+	flag.BoolVar(&trace, "t", false, "enable trace log output")
 	flag.Parse()
 	// Only demand this flag if we are not running go test
 	if configFileLocation == "" && flag.Lookup("test.v") == nil {
 		log.Fatal("-c is a mandatory parameter - please specify the config file")
 	}
+	if debug {
+		log.SetLevel(log.DebugLevel)
+	} else if trace {
+		log.SetLevel(log.TraceLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
 }
 
 var configFileLocation string
 var readyWorkers chan *net.Conn
+var debug, trace bool
 
 func loadConfigFromFile(configFileContent []byte) common.Testconf {
 	var config common.Testconf

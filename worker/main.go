@@ -14,9 +14,9 @@ import (
 )
 
 var config common.WorkerConf
+var debug, trace bool
 
 func init() {
-	log.SetLevel(log.InfoLevel)
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
 	})
@@ -26,9 +26,19 @@ func init() {
 func main() {
 	var serverAddress string
 	flag.StringVar(&serverAddress, "s", "", "Gosbench Server IP and Port in the form '192.168.1.1:2000'")
+	flag.BoolVar(&debug, "d", false, "enable debug log output")
+	flag.BoolVar(&trace, "t", false, "enable trace log output")
 	flag.Parse()
 	if serverAddress == "" {
 		log.Fatal("-s is a mandatory parameter - please specify the server IP and Port")
+	}
+
+	if debug {
+		log.SetLevel(log.DebugLevel)
+	} else if trace {
+		log.SetLevel(log.TraceLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
 	}
 
 	for {

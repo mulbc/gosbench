@@ -10,6 +10,8 @@ Gosbench consists of two parts:
 * Server: Coordinates Workers and general test queue
 * Workers: Actually connect to S3 and perform reading, writing, deleting and listing of objects
 
+INFO: `-d` activates debug logging, `-t` activates trace logging
+
 ### Running a test
 
 1. Build the server: `go install github.com/mulbc/gosbench/server`
