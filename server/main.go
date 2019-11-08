@@ -109,7 +109,7 @@ func scheduleTests(config common.Testconf) {
 				WorkerID: fmt.Sprintf("w%d", worker),
 			}
 			workerConnection := <-readyWorkers
-			log.WithField("Worker", (*workerConnection).RemoteAddr()).Debugf("We found worker %d for test %d", worker, testNumber)
+			log.WithField("Worker", (*workerConnection).RemoteAddr()).Infof("We found worker %d / %d for test %d", worker, test.Workers, testNumber)
 			go executeTestOnWorker(workerConnection, workerConfig, doneChannel, continueWorkers)
 		}
 		for worker := 0; worker < test.Workers; worker++ {
