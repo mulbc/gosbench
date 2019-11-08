@@ -46,9 +46,10 @@ tests:
     bucket_prefix: 1255gosbench-
     object_prefix: obj
     # End after a set amount of time
-    # Runtime in time.Duration
+    # Runtime in time.Duration - do not forget the unit please
+    # stop_with_runtime: 60s # Example with 60 seconds runtime
     stop_with_runtime:
-    # End after a set amount of operations
+    # End after a set amount of operations (per worker)
     stop_with_ops: 10
     # Number of s3 performance test servers to run in parallel
     workers: 2
