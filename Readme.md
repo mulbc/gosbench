@@ -27,6 +27,10 @@ The worker opens port 8888 for the Prometheus exporter. Please make sure this po
 During a test, Prometheus will scrape the performance data continuously from the workers.
 You can visualize this data in Grafana. To get an overview of what the provided data looks like, check out [the example scrape](examples/example_prom_exporter.log).
 
+There is also an [example Grafana dashboard](examples/grafana_dashboard.json) that you can import and use. The Dashboard has some basic overview of the most common stats that people are interested in:
+
+![Gosbench Dashboard in action](examples/Gosbench_Dashboard.jpg)
+
 ## Contributing
 
 * Be aware that this repo uses pre-commit hooks - install them via `pre-commit install`

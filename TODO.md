@@ -14,14 +14,4 @@
 
 ## Misc
 
-* Set up Grafana dashboard and add to repo (we should already have all data available)
-  * Should include:
-    * Worker bandwidth
-    * Operations per second
-    * Response time
-    * Success rate (amount of HTTP Code 2xx responses)
-    * Gauges about current time slot:
-      * Total operations
-      * Max bandwidth
-* Add Grafana screenshots to the Readme
 * Convert the above TODOs to Github tasks
