@@ -20,7 +20,36 @@ INFO: `-d` activates debug logging, `-t` activates trace logging
 1. Build the worker: `go install github.com/mulbc/gosbench/worker`
 1. Run the worker, specifying the server connection details: `worker -s 192.168.1.1:2000`
 1. The worker will immediately connect to the server and will start to get to work.
-The worker opens port 8888 for the Prometheus exporter. Please make sure this port is allowed in your firewall and that you added the worker to the Prometheus config. An example prometheus.yaml config can be found [in the opencensus documentation](https://opencensus.io/exporters/supported-exporters/go/prometheus/)
+The worker opens port 8888 for the Prometheus exporter. Please make sure this port is allowed in your firewall and that you added the worker to the Prometheus config.
+
+#### Prometheus configuration
+
+Make sure your prometheus configuration looks similar to this:
+
+```yaml
+global:
+  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+    - targets:
+        - localhost:9090
+
+  - job_name: 'gosbench'
+    scrape_interval: 1s
+    static_configs:
+      - targets:
+        - WORKER1.example.com:8888
+        - WORKER2.example.com:8888
+```
+
+To reload the configuration, you can either send a SIGHUP to your prometheus server or just restart it ;)
+Afterwards ensure that you have your Gosbench workers listed at http://your.prometheus.server.example.com:9090/targets
+
+It is expected that the workers are in state `DOWN` most of the time... they are only scrapeable during a test run.
+
+It is Best Practice to run the [Prometheus Node Exporter](https://github.com/prometheus/node_exporter) on all hosts as well, to gather common system metrics during the tests. This will help you in identifying bottlenecks. Please consult the Node Exporter manuals on how to install and configure it on your platform.
 
 ### Evaluating a test
 
