@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"os"
 	"time"
 
 	"github.com/mulbc/gosbench/common"
@@ -52,7 +53,8 @@ func main() {
 func connectToServer(serverAddress string) error {
 	conn, err := net.Dial("tcp", serverAddress)
 	if err != nil {
-		log.WithError(err).Fatal("Could not connect to the server")
+		log.WithError(err).Error("Could not connect to the server")
+		os.Exit(0)
 	}
 	encoder := json.NewEncoder(conn)
 	decoder := json.NewDecoder(conn)
