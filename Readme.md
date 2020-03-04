@@ -69,6 +69,9 @@ docker pull quay.io/mulbc/goroom-server
 docker pull quay.io/mulbc/goroom-worker
 ```
 
+In the `k8s` folder you will find example files to deploy Gosbench on Openshift and Kubernetes.
+Be sure to modify the ConfigMaps in `gosbench.yaml` to use your S3 endpoint credentials.
+
 ## Contributing
 
 * Be aware that this repo uses pre-commit hooks - install them via `pre-commit install`

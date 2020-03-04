@@ -1,0 +1,207 @@
+# Set up a Prometheus and Grafana instance for Gosbench
+---
+apiVersion: v1
+kind: ConfigMap
+data:
+  prometheus.yml: |-
+    global:
+      scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+      evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+        - targets:
+            - localhost:9090
+
+      - job_name: 'gosbench'
+        scrape_interval: 1s
+        static_configs:
+          - targets:
+            - gosbench-worker1:8888
+            - gosbench-worker2:8888
+metadata:
+  name: prom-config
+  labels:
+    app: gosbench-monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+data:
+  datasources.yml: |-
+    # config file version
+    apiVersion: 1
+
+    # list of datasources that should be deleted from the database
+    deleteDatasources:
+      - name: Prometheus
+        orgId: 1
+
+    # list of datasources to insert/update depending
+    # whats available in the database
+    datasources:
+      # <string, required> name of the datasource. Required
+    - name: Prometheus
+      # <string, required> datasource type. Required
+      type: prometheus
+      # <string, required> access mode. direct or proxy. Required
+      access: proxy
+      # <int> org id. will default to orgId 1 if not specified
+      orgId: 1
+      # <string> url
+      url: http://localhost:9090
+      # <string> database password, if used
+      password:
+      # <string> database user, if used
+      user:
+      # <string> database name, if used
+      database:
+      # <bool> enable/disable basic auth
+      basicAuth: false
+      # <string> basic auth username
+      basicAuthUser:
+      # <string> basic auth password
+      basicAuthPassword:
+      # <bool> enable/disable with credentials headers
+      withCredentials:
+      # <bool> mark as default datasource. Max one per org
+      isDefault: true
+      # <map> fields that will be converted to json and stored in json_data
+      jsonData:
+        graphiteVersion: "1.1"
+        tlsAuth: false
+        tlsAuthWithCACert: false
+      # <string> json object of data that will be encrypted.
+      secureJsonData:
+        tlsCACert: "..."
+        tlsClientCert: "..."
+        tlsClientKey: "..."
+      version: 1
+      # <bool> allow users to edit datasources from the UI.
+      editable: true
+metadata:
+  name: grafana-datasources
+  labels:
+    app: gosbench-monitoring
+    type: grafana
+---
+apiVersion: v1
+kind: ConfigMap
+data:
+  all.yml: |-
+    - name: 'default'       # name of this dashboard configuration (not dashboard itself)
+      org_id: 1             # id of the org to hold the dashboard
+      folder: ''            # name of the folder to put the dashboard (http://docs.grafana.org/v5.0/reference/dashboard_folders/)
+      type: 'file'          # type of dashboard description (json files)
+      options:
+        folder: '/var/lib/grafana/dashboards'       # where dashboards are
+metadata:
+  name: grafana-dashboards
+  labels:
+    app: gosbench-monitoring
+    type: grafana
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: monitoring
+  labels:
+    app: gosbench-monitoring
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gosbench-monitoring
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: prom-data
+              mountPath: /data
+            - name: prom-config
+              mountPath: /etc/prometheus
+        - name: grafana
+          image: grafana/grafana
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: grafana-datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: grafana-dashboards
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: grafana-example-dashboard
+              mountPath: /var/lib/grafana/dashboards
+      volumes:
+        - name: prom-data
+          persistentVolumeClaim:
+            claimName: prom-pvc
+        - name: prom-config
+          configMap:
+            name: prom-config
+        - name: grafana-datasources
+          configMap:
+            name: grafana-datasources
+        - name: grafana-dashboards
+          configMap:
+            name: grafana-dashboards
+        - name: grafana-example-dashboard
+          configMap:
+            name: grafana-example-dashboard
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: prom-pvc
+  labels:
+    app: gosbench-monitoring
+  # annotations:
+  #   volume.beta.kubernetes.io/storage-class: ocs-storagecluster-ceph-rbd
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  labels:
+    app: gosbench-monitoring
+spec:
+  type: NodePort
+  ports:
+    - port: 9090
+      targetPort: 9090
+  selector:
+    app: gosbench-monitoring
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  labels:
+    app: gosbench-monitoring
+spec:
+  type: NodePort
+  ports:
+    - port: 3000
+      targetPort: 3000
+  selector:
+    app: gosbench-monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+data:
+  gosbench.json: |-
+    {"__requires":[{"type":"grafana","id":"grafana","name":"Grafana","version":"5.2.4"},{"type":"panel","id":"graph","name":"Graph","version":"5.0.0"},{"type":"datasource","id":"prometheus","name":"Prometheus","version":"5.0.0"},{"type":"panel","id":"singlestat","name":"Singlestat","version":"5.0.0"}],"annotations":{"list":[{"builtIn":1,"datasource":"-- Grafana --","enable":true,"hide":true,"iconColor":"rgba(0,211,255,1)","limit":100,"name":"Annotations & Alerts","showIn":0,"tags":["bench"],"type":"tags"}]},"editable":true,"gnetId":null,"graphTooltip":1,"id":null,"iteration":1567079652980,"links":[{"asDropdown":true,"icon":"external link","tags":["overview"],"title":"Shortcuts","type":"dashboards"}],"panels":[{"collapsed":true,"gridPos":{"h":1,"w":24,"x":0,"y":0},"id":12,"panels":[{"aliasColors":{},"bars":false,"dashLength":10,"dashes":false,"datasource":"Prometheus","fill":1,"gridPos":{"h":7,"w":12,"x":0,"y":1},"id":5,"legend":{"avg":false,"current":false,"max":false,"min":false,"show":true,"total":false,"values":false},"lines":true,"linewidth":1,"links":[],"minSpan":12,"nullPointMode":"connected","percentage":false,"pointradius":5,"points":false,"renderer":"flot","seriesOverrides":[],"spaceLength":10,"stack":false,"steppedLine":false,"targets":[{"expr":"max by (device) (\nirate(node_disk_io_time_ms[5m]) and on (instance,device) ceph_disk_occupation{instance=~\"($osd_servers).*\",device=~\"($device_id)\"}\n) / 10","format":"time_series","hide":false,"intervalFactor":1,"legendFormat":"{{device}}","refId":"A","step":10,"textEditor":true}],"thresholds":[],"timeFrom":null,"timeShift":null,"title":"$osd_servers Disk utilisation","tooltip":{"shared":true,"sort":2,"value_type":"individual"},"type":"graph","xaxis":{"buckets":null,"mode":"time","name":null,"show":true,"values":[]},"yaxes":[{"format":"short","label":"%Util","logBase":1,"max":"100","min":"0","show":true},{"format":"short","label":null,"logBase":1,"max":null,"min":null,"show":false}],"yaxis":{"align":false,"alignLevel":null}},{"aliasColors":{},"bars":false,"dashLength":10,"dashes":false,"datasource":"Prometheus","fill":1,"gridPos":{"h":7,"w":12,"x":12,"y":1},"id":6,"legend":{"avg":false,"current":false,"max":false,"min":false,"show":true,"total":false,"values":false},"lines":true,"linewidth":1,"links":[],"minSpan":12,"nullPointMode":"connected","percentage":false,"pointradius":5,"points":false,"renderer":"flot","seriesOverrides":[],"spaceLength":10,"stack":false,"steppedLine":false,"targets":[{"expr":"max by (device) ((\nirate(node_disk_reads_completed{device=~\"($device_id)\",instance=~\"($osd_servers).*\"}[5m]) +\nirate(node_disk_writes_completed{device=~\"($device_id)\",instance=~\"($osd_servers).*\"}[5m])\n) and on (instance,device) ceph_disk_occupation{instance=~\"($osd_servers).*\",device=~\"($device_id)\"})","format":"time_series","intervalFactor":1,"legendFormat":"{{device}}","refId":"A","step":10,"textEditor":true}],"thresholds":[],"timeFrom":null,"timeShift":null,"title":"$osd_servers Disk IOPS","tooltip":{"shared":true,"sort":2,"value_type":"individual"},"type":"graph","xaxis":{"buckets":null,"mode":"time","name":null,"show":true,"values":[]},"yaxes":[{"format":"short","label":"IOPS","logBase":1,"max":null,"min":"0","show":true},{"format":"short","label":null,"logBase":1,"max":null,"min":null,"show":false}],"yaxis":{"align":false,"alignLevel":null}},{"aliasColors":{},"bars":false,"dashLength":10,"dashes":false,"datasource":"Prometheus","fill":1,"gridPos":{"h":7,"w":12,"x":0,"y":8},"id":7,"legend":{"avg":false,"current":false,"max":false,"min":false,"show":true,"total":false,"values":false},"lines":true,"linewidth":1,"links":[],"minSpan":12,"nullPointMode":"null as zero","percentage":false,"pointradius":5,"points":false,"renderer":"flot","seriesOverrides":[],"spaceLength":10,"stack":false,"steppedLine":false,"targets":[{"expr":"max by (device) ((\nirate(node_disk_write_time_ms{device=~ \"($device_id)\",instance=~\"($osd_servers).*\"}[5m])\n/\nclamp_min(irate(node_disk_writes_completed{device=~ \"($device_id)\",instance=~\"($osd_servers).*\"}[5m]),0.001)\n+\nirate(node_disk_read_time_ms{device=~ \"($device_id)\",instance=~\"($osd_servers).*\"}[5m])\n/\nclamp_min(irate(node_disk_reads_completed{device=~ \"($device_id)\",instance=~\"($osd_servers).*\"}[5m]),0.001)\n) and on (instance,device) ceph_disk_occupation{instance=~\"($osd_servers).*\",device=~\"($device_id)\"})","format":"time_series","hide":false,"intervalFactor":1,"legendFormat":"{{device}}","refId":"A","step":10,"textEditor":true}],"thresholds":[],"timeFrom":null,"timeShift":null,"title":"$osd_servers Disk Latency","tooltip":{"shared":true,"sort":2,"value_type":"individual"},"type":"graph","xaxis":{"buckets":null,"mode":"time","name":null,"show":true,"values":[]},"yaxes":[{"format":"ms","label":"","logBase":1,"max":null,"min":"0","show":true},{"format":"short","label":null,"logBase":1,"max":null,"min":null,"show":true}],"yaxis":{"align":false,"alignLevel":null}},{"aliasColors":{},"bars":false,"dashLength":10,"dashes":false,"datasource":"Prometheus","fill":1,"gridPos":{"h":7,"w":12,"x":12,"y":8},"id":8,"legend":{"avg":false,"current":false,"max":false,"min":false,"show":true,"total":false,"values":false},"lines":true,"linewidth":1,"links":[],"minSpan":12,"nullPointMode":"connected","percentage":false,"pointradius":5,"points":false,"renderer":"flot","seriesOverrides":[],"spaceLength":10,"stack":false,"steppedLine":false,"targets":[{"expr":"max by (device) ((\nirate(node_disk_bytes_read{device=~\"($device_id)\",instance=~\"($osd_servers).*\"}[5m]) + \nirate(node_disk_bytes_written{device=~\"($device_id)\",instance=~\"($osd_servers).*\"}[5m])\n) and on (instance,device) ceph_disk_occupation{instance=~\"($osd_servers).*\",device=~\"($device_id)\"})","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{device}}","refId":"A","step":10,"textEditor":true}],"thresholds":[],"timeFrom":null,"timeShift":null,"title":"$osd_servers Throughput by Disk","tooltip":{"shared":true,"sort":2,"value_type":"individual"},"type":"graph","xaxis":{"buckets":null,"mode":"time","name":null,"show":true,"values":[]},"yaxes":[{"format":"decbytes","label":"","logBase":1,"max":null,"min":"0","show":true},{"format":"short","label":null,"logBase":1,"max":null,"min":null,"show":false}],"yaxis":{"align":false,"alignLevel":null}},{"aliasColors":{"interrupt":"#447EBC","steal":"#6D1F62","system":"#890F02","user":"#3F6833","wait":"#C15C17"},"bars":false,"dashLength":10,"dashes":false,"datasource":"Prometheus","description":"Shows the CPU breakdown. When multiple servers are selected,only the first host's cpu data is shown","fill":3,"gridPos":{"h":7,"w":8,"x":0,"y":15},"id":9,"legend":{"alignAsTable":false,"avg":false,"current":false,"max":false,"min":false,"show":true,"total":false,"values":false},"lines":true,"linewidth":1,"links":[],"minSpan":12,"nullPointMode":"connected","percentage":false,"pointradius":5,"points":false,"renderer":"flot","repeat":null,"seriesOverrides":[],"spaceLength":10,"stack":true,"steppedLine":false,"targets":[{"expr":"sum by (mode) (\nirate(node_cpu{instance=~\"($osd_servers).*\",mode=~\"(irq|nice|softirq|steal|system|user|iowait)\"}[5m])\n) / scalar(\nsum(irate(node_cpu{instance=~\"($osd_servers).*\"}[5m]))\n) * 100","format":"time_series","intervalFactor":2,"legendFormat":"{{mode}}","refId":"A","step":10,"textEditor":true}],"thresholds":[],"timeFrom":null,"timeShift":null,"title":"$osd_servers CPU Utilisation","tooltip":{"shared":true,"sort":0,"value_type":"individual"},"type":"graph","xaxis":{"buckets":null,"mode":"time","name":null,"show":true,"values":[]},"yaxes":[{"format":"percent","label":"","logBase":1,"max":"100","min":"0","show":true},{"format":"short","label":null,"logBase":1,"max":null,"min":null,"show":false}],"yaxis":{"align":false,"alignLevel":null}},{"aliasColors":{},"bars":false,"dashLength":10,"dashes":false,"datasource":"Prometheus","fill":1,"gridPos":{"h":7,"w":8,"x":8,"y":15},"id":16,"legend":{"alignAsTable":false,"avg":false,"current":false,"max":true,"min":true,"rightSide":false,"show":true,"sort":"max","sortDesc":true,"total":false,"values":true},"lines":true,"linewidth":1,"links":[],"nullPointMode":"null","percentage":false,"pointradius":5,"points":false,"renderer":"flot","seriesOverrides":[],"spaceLength":10,"stack":false,"steppedLine":false,"targets":[{"expr":"sum by (instance) (avg by (instance,mode) (rate(node_cpu{instance=~\"rhload.*\",mode!=\"idle\"}[5m])))","format":"time_series","hide":false,"intervalFactor":1,"legendFormat":"{{instance}}","refId":"B"}],"thresholds":[],"timeFrom":null,"timeShift":null,"title":"Loadgen CPU usage","tooltip":{"shared":true,"sort":2,"value_type":"individual"},"type":"graph","xaxis":{"buckets":null,"mode":"time","name":null,"show":true,"values":[]},"yaxes":[{"format":"percentunit","label":null,"logBase":1,"max":null,"min":null,"show":true},{"format":"short","label":null,"logBase":1,"max":null,"min":null,"show":true}],"yaxis":{"align":false,"alignLevel":null}},{"aliasColors":{},"bars":false,"dashLength":10,"dashes":false,"datasource":"Prometheus","fill":1,"gridPos":{"h":7,"w":8,"x":16,"y":15},"id":10,"legend":{"alignAsTable":false,"avg":false,"current":false,"hideZero":true,"max":false,"min":false,"rightSide":false,"show":true,"total":false,"values":false},"lines":true,"linewidth":1,"links":[],"minSpan":12,"nullPointMode":"connected","percentage":false,"pointradius":5,"points":false,"renderer":"flot","seriesOverrides":[],"spaceLength":10,"stack":true,"steppedLine":false,"targets":[{"expr":"sum by (device) (irate(node_network_receive_bytes{instance=~\"($osd_servers).*\",device=~\"(eth|en|bond|ib|mlx|p).*\"}[5m]))","format":"time_series","intervalFactor":2,"legendFormat":"{{device}}.rx","refId":"A","step":10,"textEditor":true},{"expr":"sum by (device) (irate(node_network_transmit_bytes{instance=~\"($osd_servers).*\",device=~\"(eth|en|bond|ib|mlx|p).*\"}[5m]))","format":"time_series","intervalFactor":2,"legendFormat":"{{device}}.tx","refId":"B","step":10}],"thresholds":[],"timeFrom":null,"timeShift":null,"title":"$osd_servers Network Load","tooltip":{"shared":true,"sort":2,"value_type":"individual"},"type":"graph","xaxis":{"buckets":null,"mode":"time","name":null,"show":true,"values":[]},"yaxes":[{"format":"decbytes","label":null,"logBase":1,"max":null,"min":"0","show":true},{"format":"short","label":null,"logBase":1,"max":null,"min":null,"show":false}],"yaxis":{"align":false,"alignLevel":null}}],"repeat":null,"title":"'$osd_servers' Performance Statistics","type":"row"},{"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":1},"id":20,"panels":[],"title":"Gosbench","type":"row"},{"cacheTimeout":null,"colorBackground":false,"colorValue":false,"colors":["#299c46","rgba(237,129,40,0.89)","#d44a3a"],"datasource":"Prometheus","decimals":null,"format":"locale","gauge":{"maxValue":100,"minValue":0,"show":false,"thresholdLabels":false,"thresholdMarkers":true},"gridPos":{"h":3,"w":2,"x":0,"y":2},"hideTimeOverride":false,"id":22,"interval":null,"links":[],"mappingType":1,"mappingTypes":[{"name":"value to text","value":1},{"name":"range to text","value":2}],"maxDataPoints":100,"nullPointMode":"connected","nullText":null,"postfix":"","postfixFontSize":"50%","prefix":"","prefixFontSize":"50%","rangeMaps":[{"from":"null","text":"N/A","to":"null"}],"sparkline":{"fillColor":"rgba(31,118,189,0.18)","full":true,"lineColor":"rgb(31,120,193)","show":true},"tableColumn":"","targets":[{"expr":"sum(gosbench_opencensus_io_http_client_completed_count)","format":"time_series","intervalFactor":1,"refId":"A"}],"thresholds":"","title":"op count","type":"singlestat","valueFontSize":"80%","valueMaps":[{"op":"=","text":"N/A","value":"null"}],"valueName":"delta"},{"cacheTimeout":null,"colorBackground":false,"colorValue":false,"colors":["#299c46","rgba(237,129,40,0.89)","#d44a3a"],"datasource":"Prometheus","format":"bytes","gauge":{"maxValue":100,"minValue":0,"show":false,"thresholdLabels":false,"thresholdMarkers":true},"gridPos":{"h":3,"w":2,"x":2,"y":2},"id":26,"interval":null,"links":[],"mappingType":1,"mappingTypes":[{"name":"value to text","value":1},{"name":"range to text","value":2}],"maxDataPoints":100,"nullPointMode":"connected","nullText":null,"postfix":"","postfixFontSize":"50%","prefix":"","prefixFontSize":"50%","rangeMaps":[{"from":"null","text":"N/A","to":"null"}],"sparkline":{"fillColor":"rgba(31,118,189,0.18)","full":true,"lineColor":"rgb(31,120,193)","show":true},"tableColumn":"","targets":[{"expr":"abs(sum(gosbench_opencensus_io_http_client_received_bytes_sum))+abs(sum(gosbench_opencensus_io_http_client_sent_bytes_sum))","format":"time_series","intervalFactor":1,"refId":"A"}],"thresholds":"","title":"byte count","type":"singlestat","valueFontSize":"80%","valueMaps":[{"op":"=","text":"N/A","value":"null"}],"valueName":"delta"},{"aliasColors":{},"bars":false,"dashLength":10,"dashes":false,"datasource":"Prometheus","fill":1,"gridPos":{"h":9,"w":12,"x":12,"y":2},"id":24,"legend":{"avg":true,"current":false,"max":true,"min":true,"show":true,"total":false,"values":true},"lines":true,"linewidth":1,"links":[],"nullPointMode":"null","percentage":false,"pointradius":5,"points":false,"renderer":"flot","seriesOverrides":[{"alias":"SUM","yaxis":2}],"spaceLength":10,"stack":true,"steppedLine":false,"targets":[{"expr":"sum(irate(gosbench_opencensus_io_http_client_completed_count[5m])) by (instance)","format":"time_series","intervalFactor":1,"legendFormat":"{{instance}}","refId":"A"},{"expr":"sum(irate(gosbench_opencensus_io_http_client_completed_count[5m]))","format":"time_series","intervalFactor":1,"legendFormat":"SUM","refId":"B"}],"thresholds":[],"timeFrom":null,"timeShift":null,"title":"Operations per second","tooltip":{"shared":true,"sort":2,"value_type":"individual"},"type":"graph","xaxis":{"buckets":null,"mode":"time","name":null,"show":true,"values":[]},"yaxes":[{"format":"ops","label":null,"logBase":1,"max":null,"min":null,"show":true},{"format":"ops","label":null,"logBase":1,"max":null,"min":null,"show":true}],"yaxis":{"align":false,"alignLevel":null}},{"aliasColors":{},"bars":false,"dashLength":10,"dashes":false,"datasource":"Prometheus","fill":1,"gridPos":{"h":9,"w":12,"x":0,"y":5},"id":18,"legend":{"avg":true,"current":false,"max":true,"min":true,"show":true,"total":false,"values":true},"lines":true,"linewidth":1,"links":[],"nullPointMode":"null","percentage":false,"pointradius":5,"points":false,"renderer":"flot","seriesOverrides":[{"alias":"/received/","transform":"negative-Y"},{"alias":"SUM","yaxis":2}],"spaceLength":10,"stack":false,"steppedLine":false,"targets":[{"expr":"sum(irate(gosbench_opencensus_io_http_client_sent_bytes_sum{}[5m])) by (instance)","format":"time_series","intervalFactor":1,"legendFormat":"sent{{ instance}}","refId":"A"},{"expr":"sum(irate(gosbench_opencensus_io_http_client_received_bytes_sum{}[5m])) by (instance)","format":"time_series","intervalFactor":1,"legendFormat":"received{{ instance}}","refId":"B"},{"expr":"abs(sum(irate(gosbench_opencensus_io_http_client_sent_bytes_sum{}[5m]))) + abs(sum(irate(gosbench_opencensus_io_http_client_received_bytes_sum{}[5m])))","format":"time_series","intervalFactor":1,"legendFormat":"SUM","refId":"C"}],"thresholds":[],"timeFrom":null,"timeShift":null,"title":"Gosbench sent/received bytes sum","tooltip":{"shared":true,"sort":2,"value_type":"individual"},"type":"graph","xaxis":{"buckets":null,"mode":"time","name":null,"show":true,"values":[]},"yaxes":[{"format":"Bps","label":null,"logBase":1,"max":null,"min":null,"show":true},{"format":"Bps","label":null,"logBase":1,"max":null,"min":null,"show":true}],"yaxis":{"align":true,"alignLevel":null}},{"aliasColors":{},"bars":false,"dashLength":10,"dashes":false,"datasource":"Prometheus","fill":1,"gridPos":{"h":9,"w":12,"x":12,"y":11},"id":28,"legend":{"avg":true,"current":false,"max":true,"min":true,"show":true,"total":false,"values":true},"lines":true,"linewidth":1,"links":[],"nullPointMode":"null","percentage":false,"pointradius":5,"points":false,"renderer":"flot","seriesOverrides":[],"spaceLength":10,"stack":false,"steppedLine":false,"targets":[{"expr":"sum(irate(gosbench_opencensus_io_http_client_roundtrip_latency_sum[5m]))","format":"time_series","intervalFactor":1,"legendFormat":"latency","refId":"A"}],"thresholds":[],"timeFrom":null,"timeShift":null,"title":"response time","tooltip":{"shared":true,"sort":0,"value_type":"individual"},"type":"graph","xaxis":{"buckets":null,"mode":"time","name":null,"show":true,"values":[]},"yaxes":[{"format":"µs","label":null,"logBase":1,"max":null,"min":null,"show":true},{"format":"short","label":null,"logBase":1,"max":null,"min":null,"show":true}],"yaxis":{"align":false,"alignLevel":null}}],"refresh":false,"schemaVersion":16,"style":"dark","tags":["overview"],"templating":{"list":[{"allValue":null,"current":{},"datasource":"Prometheus","hide":0,"includeAll":true,"label":"OSD Host Name","multi":false,"name":"osd_servers","options":[],"query":"label_values(ceph_disk_occupation,instance)","refresh":1,"regex":"([^.]*).*","sort":3,"tagValuesQuery":"","tags":[],"tagsQuery":"","type":"query","useTags":false},{"allValue":null,"current":{},"datasource":"Prometheus","hide":0,"includeAll":true,"label":"Disk Name","multi":true,"name":"device_id","options":[],"query":"ceph_disk_occupation","refresh":1,"regex":"/device=\"([^\"]*)\"/","sort":0,"tagValuesQuery":"","tags":[],"tagsQuery":"","type":"query","useTags":false},{"allValue":null,"current":{"selected":true,"text":"60","value":"60"},"hide":2,"includeAll":false,"label":null,"multi":false,"name":"max_devices","options":[{"selected":true,"text":"60","value":"60"}],"query":"60","type":"custom"}]},"time":{"from":"2019-08-29T10:51:10.038Z","to":"2019-08-29T10:56:19.433Z"},"timepicker":{"refresh_intervals":["5s","10s","30s","1m","5m","15m","30m","1h","2h","1d"],"time_options":["5m","15m","1h","6h","12h","24h","2d","7d","30d"]},"timezone":"utc","title":"Gosbench","uid":"R67SuKSZk","version":17}
+metadata:
+  name: grafana-example-dashboard
+  labels:
+    app: gosbench-monitoring
+    type: grafana
+...

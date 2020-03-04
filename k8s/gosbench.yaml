@@ -1,0 +1,181 @@
+---
+apiVersion: v1
+kind: ConfigMap
+data:
+  config.yml: |-
+    s3_config:
+      - access_key: abc
+        secret_key: as
+        region: eu-central-1
+        endpoint:
+      - access_key: def
+        secret_key: as
+        region: eu-central-2
+        endpoint:
+      - access_key: ghi
+        secret_key: as
+        region: eu-central-3
+        endpoint:
+
+    # For generating annotations when we start/stop testcases
+    # https://grafana.com/docs/http_api/annotations/#create-annotation
+    grafana_config:
+      endpoint: http://grafana
+      username: admin
+      password: grafana
+
+    tests:
+      - read_weight: 20
+        write_weight: 80
+        delete_weight: 0
+        list_weight: 0
+        objects:
+          size_min: 5
+          size_max: 100
+          part_size: 0
+          # distribution: constant, random, sequential
+          size_distribution: random
+          unit: KB
+          number_min: 10
+          number_max: 10
+          # distribution: constant, random, sequential
+          number_distribution: constant
+        buckets:
+          number_min: 1
+          number_max: 10
+          # distribution: constant, random, sequential
+          number_distribution: constant
+        # Name prefix for buckets and objects
+        bucket_prefix: 1255gosbench-
+        object_prefix: obj
+        # End after a set amount of time
+        # Runtime in time.Duration - do not forget the unit please
+        # stop_with_runtime: 60s # Example with 60 seconds runtime
+        stop_with_runtime:
+        # End after a set amount of operations (per worker)
+        stop_with_ops: 10
+        # Number of s3 performance test servers to run in parallel
+        workers: 2
+        # Set wheter workers share the same buckets or not
+        # If set to True - bucket names will have the worker # appended
+        workers_share_buckets: True
+        # Number of requests processed in parallel by each worker
+        parallel_clients: 3
+        # Remove all generated buckets and its content after run
+        clean_after: True
+metadata:
+  name: gosbench-config
+  labels:
+    app: gosbench-monitoring
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: worker1
+  labels:
+    app: gosbench-worker1
+spec:
+  replicas: 1
+  template:
+    hostname: worker1
+    metadata:
+      labels:
+        app: gosbench
+    spec:
+      containers:
+        - name: prometheus
+          image: quay.io/mulbc/goroom-worker
+          command: ['./main', '-s', 'gosbench-server:2000']
+          ports:
+            - containerPort: 8888
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: worker2
+  labels:
+    app: gosbench-worker2
+spec:
+  replicas: 1
+  template:
+    hostname: worker2
+    metadata:
+      labels:
+        app: gosbench
+    spec:
+      containers:
+        - name: prometheus
+          image: quay.io/mulbc/goroom-worker
+          command: ['./main', '-s', 'gosbench-server:2000']
+          ports:
+            - containerPort: 8888
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: gosbench-server
+  labels:
+    app: gosbench
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gosbench
+    spec:
+      containers:
+        - name: prometheus
+          image: quay.io/mulbc/goroom-server
+          command: ['./main', '-c', '/app/config/config.yml']
+          ports:
+            - containerPort: 2000
+          volumeMounts:
+            - name: gosbench-config
+              mountPath: /app/config
+      volumes:
+        - name: gosbench-config
+          configMap:
+            name: gosbench-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gosbench-server
+  labels:
+    app: gosbench
+spec:
+  type: NodePort
+  ports:
+    - port: 2000
+      targetPort: 2000
+  selector:
+    app: gosbench
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gosbench-worker1
+  labels:
+    app: gosbench-worker2
+spec:
+  type: NodePort
+  ports:
+    - port: 2000
+      targetPort: 2000
+  selector:
+    app: gosbench-worker2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gosbench-worker2
+  labels:
+    app: gosbench-worker2
+spec:
+  type: NodePort
+  ports:
+    - port: 2000
+      targetPort: 2000
+  selector:
+    app: gosbench-worker2
+...
