@@ -60,6 +60,15 @@ There is also an [example Grafana dashboard](examples/grafana_dashboard.json) th
 
 ![Gosbench Dashboard in action](examples/Gosbench_Dashboard.jpg)
 
+### Docker
+
+There are now Docker container images available for easy consumption:
+
+```shell
+docker pull quay.io/mulbc/goroom-server
+docker pull quay.io/mulbc/goroom-worker
+```
+
 ## Contributing
 
 * Be aware that this repo uses pre-commit hooks - install them via `pre-commit install`
