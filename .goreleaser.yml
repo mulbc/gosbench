@@ -31,6 +31,9 @@ builds:
     - 7
   env:
     - CGO_ENABLED=0
+
+dockers:
+  - 
 archives:
 - replacements:
     darwin: macOS
@@ -54,6 +57,12 @@ changelog:
 signs:
   - artifacts: checksum
 release:
-  draft: true
+  draft: false
   prerelease: true
-  disable: true
+  disable: false
+  github:
+env_files:
+  # use only one or release will fail!
+  # github_token: ~/.path/to/my/gh_token
+  gitlab_token: asdad
+  # gitea_token: ~/.path/to/my/gitea_token
