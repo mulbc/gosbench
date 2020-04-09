@@ -23,6 +23,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 
 	flag.StringVar(&configFileLocation, "c", "", "Config file describing test run")
+	flag.IntVar(&serverPort, "p", 2000, "Port on which the server will be available for clients. Default: 2000")
 	flag.BoolVar(&debug, "d", false, "enable debug log output")
 	flag.BoolVar(&trace, "t", false, "enable trace log output")
 	flag.Parse()
@@ -40,6 +41,7 @@ func init() {
 }
 
 var configFileLocation string
+var serverPort int
 var readyWorkers chan *net.Conn
 var debug, trace bool
 
@@ -65,7 +67,7 @@ func main() {
 
 	// Listen on TCP port 2000 on all available unicast and
 	// anycast IP addresses of the local system.
-	l, err := net.Listen("tcp", ":2000")
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", serverPort))
 	if err != nil {
 		log.WithError(err).Fatal("Could not open port!")
 	}
