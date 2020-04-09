@@ -56,17 +56,18 @@ type TestCaseConfiguration struct {
 		NumberLast         uint64
 		NumberDistribution string `yaml:"number_distribution"`
 	} `yaml:"buckets"`
-	BucketPrefix    string        `yaml:"bucket_prefix"`
-	ObjectPrefix    string        `yaml:"object_prefix"`
-	Runtime         time.Duration `yaml:"stop_with_runtime"`
-	OpsDeadline     uint64        `yaml:"stop_with_ops"`
-	Workers         int           `yaml:"workers"`
-	ParallelClients int           `yaml:"parallel_clients"`
-	CleanAfter      bool          `yaml:"clean_after"`
-	ReadWeight      int           `yaml:"read_weight"`
-	WriteWeight     int           `yaml:"write_weight"`
-	ListWeight      int           `yaml:"list_weight"`
-	DeleteWeight    int           `yaml:"delete_weight"`
+	BucketPrefix       string        `yaml:"bucket_prefix"`
+	ObjectPrefix       string        `yaml:"object_prefix"`
+	Runtime            time.Duration `yaml:"stop_with_runtime"`
+	OpsDeadline        uint64        `yaml:"stop_with_ops"`
+	Workers            int           `yaml:"workers"`
+	WorkerShareBuckets bool          `yaml:"workers_share_buckets"`
+	ParallelClients    int           `yaml:"parallel_clients"`
+	CleanAfter         bool          `yaml:"clean_after"`
+	ReadWeight         int           `yaml:"read_weight"`
+	WriteWeight        int           `yaml:"write_weight"`
+	ListWeight         int           `yaml:"list_weight"`
+	DeleteWeight       int           `yaml:"delete_weight"`
 }
 
 // Testconf contains all the information necessary to set up a distributed test
