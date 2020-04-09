@@ -65,6 +65,7 @@ type TestCaseConfiguration struct {
 	ParallelClients    int           `yaml:"parallel_clients"`
 	CleanAfter         bool          `yaml:"clean_after"`
 	ReadWeight         int           `yaml:"read_weight"`
+	ExistingReadWeight int           `yaml:"existing_read_weight"`
 	WriteWeight        int           `yaml:"write_weight"`
 	ListWeight         int           `yaml:"list_weight"`
 	DeleteWeight       int           `yaml:"delete_weight"`
@@ -108,8 +109,11 @@ func checkTestCase(testcase *TestCaseConfiguration) error {
 	if testcase.Runtime == 0 && testcase.OpsDeadline == 0 {
 		return fmt.Errorf("Either stop_with_runtime or stop_with_ops needs to be set")
 	}
-	if testcase.ReadWeight == 0 && testcase.WriteWeight == 0 && testcase.ListWeight == 0 && testcase.DeleteWeight == 0 {
+	if testcase.ReadWeight == 0 && testcase.WriteWeight == 0 && testcase.ListWeight == 0 && testcase.DeleteWeight == 0 && testcase.ExistingReadWeight == 0 {
 		return fmt.Errorf("At least one weight needs to be set - Read / Write / List / Delete")
+	}
+	if testcase.ExistingReadWeight != 0 && testcase.BucketPrefix == "" {
+		return fmt.Errorf("When using existing_read_weight, setting the bucket_prefix is mandatory")
 	}
 	if testcase.Buckets.NumberMin == 0 {
 		return fmt.Errorf("Please set minimum number of Buckets")

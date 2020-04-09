@@ -72,6 +72,40 @@ docker pull quay.io/mulbc/goroom-worker
 In the `k8s` folder you will find example files to deploy Gosbench on Openshift and Kubernetes.
 Be sure to modify the ConfigMaps in `gosbench.yaml` to use your S3 endpoint credentials.
 
+### Reading pre-existing files from buckets
+
+Due to popular demand, reading pre-existing files have been added. You activate this special mode by setting `existing_read_weight` to something higher than 0.
+
+There are some important things to consider though ;)
+
+Just like with other operations, the `bucket_prefix` value will be evaluated to determine the bucket name to search for pre-existing objects.
+
+**Example:** This is an excerpt of your config:
+
+```yaml
+    objects:
+      size_min: 5
+      size_max: 100
+      part_size: 0
+      # distribution: constant, random, sequential
+      size_distribution: random
+      unit: KB
+      number_min: 10
+      number_max: 100
+      # distribution: constant, random, sequential
+      number_distribution: constant
+    buckets:
+      number_min: 2
+      number_max: 10
+      # distribution: constant, random, sequential
+      number_distribution: constant
+    bucket_prefix: myBucket-
+```
+
+Note: Due to the constant distribution, we will only consider the `_min` values.
+
+This will cause each workers to search for pre-existing files in the buckets `myBucket-0` and `myBucket-1` and read 10 objects from these buckets. If there are less than 10 objects in any of these buckets, some objects will be read multiple times. The object size given in your config will be ignored when reading pre-existing files.
+
 ## Contributing
 
 * Be aware that this repo uses pre-commit hooks - install them via `pre-commit install`

@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/mulbc/gosbench/common"
 	log "github.com/sirupsen/logrus"
 )
@@ -179,10 +180,13 @@ func workUntilOps(Workqueue *Workqueue, workChannel chan WorkItem, maxOps uint64
 	}
 }
 
-func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, workerID string) {
+func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, workerID string, shareBucketName bool) {
 
 	if testConfig.ReadWeight > 0 {
 		Workqueue.OperationValues = append(Workqueue.OperationValues, KV{Key: "read"})
+	}
+	if testConfig.ExistingReadWeight > 0 {
+		Workqueue.OperationValues = append(Workqueue.OperationValues, KV{Key: "existing_read"})
 	}
 	if testConfig.WriteWeight > 0 {
 		Workqueue.OperationValues = append(Workqueue.OperationValues, KV{Key: "write"})
@@ -204,6 +208,16 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 		if err != nil {
 			log.WithError(err).WithField("bucket", bucketName).Error("Error when creating bucket")
 		}
+		var PreExistingObjects *s3.ListObjectsOutput
+		var PreExistingObjectCount uint64
+		if testConfig.ExistingReadWeight > 0 {
+			PreExistingObjects, err = listObjects(housekeepingSvc, "", bucketName)
+			PreExistingObjectCount = uint64(len(PreExistingObjects.Contents))
+			log.Debugf("Found %d objects in bucket %s", PreExistingObjectCount, bucketName)
+			if err != nil {
+				log.WithError(err).Fatalf("Problems when listing contents of bucket %s", bucketName)
+			}
+		}
 		objectCount := common.EvaluateDistribution(testConfig.Objects.NumberMin, testConfig.Objects.NumberMax, &testConfig.Objects.NumberLast, 1, testConfig.Objects.NumberDistribution)
 		for object := uint64(0); object < objectCount; object++ {
 			objectSize := common.EvaluateDistribution(testConfig.Objects.SizeMin, testConfig.Objects.SizeMax, &testConfig.Objects.SizeLast, 1, testConfig.Objects.SizeDistribution)
@@ -213,9 +227,20 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 			case "read":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.ReadWeight), Workqueue)
 				new := ReadOperation{
-					Bucket:     bucketName,
-					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
-					ObjectSize: objectSize,
+					Bucket:                   bucketName,
+					ObjectName:               fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
+					ObjectSize:               objectSize,
+					WorksOnPreexistingObject: false,
+				}
+				*Workqueue.Queue = append(*Workqueue.Queue, new)
+			case "existing_read":
+				IncreaseOperationValue(nextOp, 1/float64(testConfig.ExistingReadWeight), Workqueue)
+				new := ReadOperation{
+					// TODO: Get bucket and object that already exist
+					Bucket:                   bucketName,
+					ObjectName:               *PreExistingObjects.Contents[object%PreExistingObjectCount].Key,
+					ObjectSize:               uint64(*PreExistingObjects.Contents[object%PreExistingObjectCount].Size),
+					WorksOnPreexistingObject: true,
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
 			case "write":
