@@ -56,6 +56,7 @@ type TestCaseConfiguration struct {
 		NumberLast         uint64
 		NumberDistribution string `yaml:"number_distribution"`
 	} `yaml:"buckets"`
+	Name               string        `yaml:"name"`
 	BucketPrefix       string        `yaml:"bucket_prefix"`
 	ObjectPrefix       string        `yaml:"object_prefix"`
 	Runtime            time.Duration `yaml:"stop_with_runtime"`
