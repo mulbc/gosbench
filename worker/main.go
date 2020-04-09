@@ -79,7 +79,7 @@ func connectToServer(serverAddress string) error {
 			log.Info("Got config from server - starting preparations now")
 
 			InitS3(*config.S3Config)
-			fillWorkqueue(config.Test, Workqueue, config.WorkerID)
+			fillWorkqueue(config.Test, Workqueue, config.WorkerID, config.Test.WorkerShareBuckets)
 
 			for _, work := range *Workqueue.Queue {
 				work.Prepare()
@@ -196,9 +196,13 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 
 	bucketCount := common.EvaluateDistribution(testConfig.Buckets.NumberMin, testConfig.Buckets.NumberMax, &testConfig.Buckets.NumberLast, 1, testConfig.Buckets.NumberDistribution)
 	for bucket := uint64(0); bucket < bucketCount; bucket++ {
-		err := createBucket(housekeepingSvc, fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket))
+		bucketName := fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket)
+		if shareBucketName {
+			bucketName = fmt.Sprintf("%s%d", testConfig.BucketPrefix, bucket)
+		}
+		err := createBucket(housekeepingSvc, bucketName)
 		if err != nil {
-			log.WithError(err).WithField("bucket", fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket)).Error("Error when creating bucket")
+			log.WithError(err).WithField("bucket", bucketName).Error("Error when creating bucket")
 		}
 		objectCount := common.EvaluateDistribution(testConfig.Objects.NumberMin, testConfig.Objects.NumberMax, &testConfig.Objects.NumberLast, 1, testConfig.Objects.NumberDistribution)
 		for object := uint64(0); object < objectCount; object++ {
@@ -209,7 +213,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 			case "read":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.ReadWeight), Workqueue)
 				new := ReadOperation{
-					Bucket:     fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
+					Bucket:     bucketName,
 					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
 					ObjectSize: objectSize,
 				}
@@ -217,7 +221,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 			case "write":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.WriteWeight), Workqueue)
 				new := WriteOperation{
-					Bucket:     fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
+					Bucket:     bucketName,
 					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
 					ObjectSize: objectSize,
 				}
@@ -225,7 +229,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 			case "list":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.ListWeight), Workqueue)
 				new := ListOperation{
-					Bucket:     fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
+					Bucket:     bucketName,
 					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
 					ObjectSize: objectSize,
 				}
@@ -233,7 +237,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 			case "delete":
 				IncreaseOperationValue(nextOp, 1/float64(testConfig.DeleteWeight), Workqueue)
 				new := DeleteOperation{
-					Bucket:     fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket),
+					Bucket:     bucketName,
 					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
 					ObjectSize: objectSize,
 				}
