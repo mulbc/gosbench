@@ -145,8 +145,8 @@ func getObjectProperties(service *s3.S3, objectName string, bucket string) {
 
 	log.Debugf("Object Properties:\n%+v", result)
 }
-func listObjects(service *s3.S3, prefix string, bucket string) error {
-	_, err := service.ListObjects(&s3.ListObjectsInput{
+func listObjects(service *s3.S3, prefix string, bucket string) (*s3.ListObjectsOutput, error) {
+	result, err := service.ListObjects(&s3.ListObjectsInput{
 		Bucket: &bucket,
 		Prefix: &prefix,
 	})
@@ -157,7 +157,7 @@ func listObjects(service *s3.S3, prefix string, bucket string) error {
 			log.WithError(aerr).Errorf("Could not find prefix %s in bucket %s when querying properties", prefix, bucket)
 		}
 	}
-	return err
+	return result, err
 }
 
 func getObject(service *s3.S3, objectName string, bucket string) error {

@@ -21,9 +21,10 @@ type WorkItem interface {
 
 // ReadOperation stands for a read operation
 type ReadOperation struct {
-	Bucket     string
-	ObjectName string
-	ObjectSize uint64
+	Bucket                   string
+	ObjectName               string
+	ObjectSize               uint64
+	WorksOnPreexistingObject bool
 }
 
 // WriteOperation stands for a write operation
@@ -96,7 +97,10 @@ func IncreaseOperationValue(operation string, value float64, Queue *Workqueue) e
 
 // Prepare prepares the execution of the ReadOperation
 func (op ReadOperation) Prepare() error {
-	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing ReadOperation")
+	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).WithField("Preexisting?", op.WorksOnPreexistingObject).Debug("Preparing ReadOperation")
+	if op.WorksOnPreexistingObject {
+		return nil
+	}
 	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
@@ -125,7 +129,7 @@ func (op Stopper) Prepare() error {
 
 // Do executes the actual work of the ReadOperation
 func (op ReadOperation) Do() error {
-	log.Debug("Doing ReadOperation")
+	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).WithField("Preexisting?", op.WorksOnPreexistingObject).Debug("Doing ReadOperation")
 	return getObject(svc, op.ObjectName, op.Bucket)
 }
 
@@ -138,7 +142,8 @@ func (op WriteOperation) Do() error {
 // Do executes the actual work of the ListOperation
 func (op ListOperation) Do() error {
 	log.Debug("Doing ListOperation")
-	return listObjects(svc, op.ObjectName, op.Bucket)
+	_, err := listObjects(svc, op.ObjectName, op.Bucket)
+	return err
 }
 
 // Do executes the actual work of the DeleteOperation
@@ -154,6 +159,10 @@ func (op Stopper) Do() error {
 
 // Clean removes the objects and buckets left from the previous ReadOperation
 func (op ReadOperation) Clean() error {
+	if op.WorksOnPreexistingObject {
+		return nil
+	}
+	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).WithField("Preexisting?", op.WorksOnPreexistingObject).Debug("Cleaning up ReadOperation")
 	return deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
 }
 
