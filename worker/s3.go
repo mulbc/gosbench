@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -50,7 +51,8 @@ func init() {
 		mux := http.NewServeMux()
 		mux.Handle("/metrics", pe)
 		// http://localhost:8888/metrics
-		if err := http.ListenAndServe(":8888", mux); err != nil {
+		log.Infof("Starting Prometheus Exporter on port %d", prometheusPort)
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", prometheusPort), mux); err != nil {
 			log.WithError(err).Fatalf("Failed to run Prometheus /metrics endpoint:")
 		}
 	}()
