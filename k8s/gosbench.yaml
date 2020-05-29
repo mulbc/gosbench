@@ -157,7 +157,7 @@ kind: Service
 metadata:
   name: gosbench-worker1
   labels:
-    app: gosbench-worker2
+    app: gosbench-worker1
 spec:
   type: NodePort
   ports:
