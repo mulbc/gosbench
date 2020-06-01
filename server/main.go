@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net"
-	"os"
 	"time"
 
 	"github.com/mulbc/gosbench/common"
@@ -143,8 +142,10 @@ func scheduleTests(config common.Testconf) {
 		log.WithField("test", testNumber).Infof("GRAFANA: ?from=%d&to=%d", startTime, stopTime)
 	}
 	log.Info("All performance tests finished")
-	time.Sleep(30 * time.Second)
-	os.Exit(0)
+	for {
+		workerConnection := <-readyWorkers
+		shutdownWorker(workerConnection)
+	}
 }
 
 func executeTestOnWorker(conn *net.Conn, config *common.WorkerConf, doneChannel chan bool, continueWorkers chan bool) {
@@ -172,4 +173,10 @@ func executeTestOnWorker(conn *net.Conn, config *common.WorkerConf, doneChannel 
 			return
 		}
 	}
+}
+
+func shutdownWorker(conn *net.Conn) {
+	encoder := json.NewEncoder(*conn)
+	log.WithField("Worker", (*conn).RemoteAddr()).Info("Shutting down worker")
+	encoder.Encode(common.WorkerMessage{Message: "shutdown"})
 }

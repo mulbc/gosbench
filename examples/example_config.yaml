@@ -4,15 +4,18 @@ s3_config:
   - access_key: abc
     secret_key: as
     region: eu-central-1
-    endpoint:
+    endpoint: https://my.rgw.endpoint:8080
+    skipSSLverify: false
   - access_key: def
     secret_key: as
     region: eu-central-2
-    endpoint:
+    endpoint: https://my.rgw.endpoint:8080
+    skipSSLverify: false
   - access_key: ghi
     secret_key: as
     region: eu-central-3
-    endpoint:
+    endpoint: https://my.rgw.endpoint:8080
+    skipSSLverify: false
 
 # For generating annotations when we start/stop testcases
 # https://grafana.com/docs/http_api/annotations/#create-annotation

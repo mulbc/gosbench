@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -36,7 +37,6 @@ func init() {
 	if err != nil {
 		log.WithError(err).Fatalf("Failed to create the Prometheus exporter:")
 	}
-	hc = &http.Client{Transport: new(ochttp.Transport)}
 
 	if err := view.Register([]*view.View{
 		ochttp.ClientSentBytesDistribution,
@@ -67,6 +67,14 @@ func InitS3(config common.S3Configuration) {
 	// Session should be shared where possible to take advantage of
 	// configuration and credential caching. See the session package for
 	// more information.
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipSSLVerify},
+	}
+	tr2 := &ochttp.Transport{Base: tr}
+	// tr2.(*http.RoundTripper).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipSSLVerify}
+	hc = &http.Client{
+		Transport: tr2,
+	}
 
 	sess := session.Must(session.NewSession(&aws.Config{
 		HTTPClient: hc,
@@ -78,6 +86,7 @@ func InitS3(config common.S3Configuration) {
 	}))
 	// Use this Session to do things that are hidden from the performance monitoring
 	housekeepingSess := session.Must(session.NewSession(&aws.Config{
+		HTTPClient: &http.Client{Transport: tr},
 		// TODO Also set the remaining S3 connection details...
 		Region:           &config.Region,
 		Credentials:      credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),

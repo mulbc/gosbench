@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -49,6 +50,7 @@ func main() {
 		err := connectToServer(serverAddress)
 		if err != nil {
 			log.WithError(err).Fatal("Issues with server connection")
+			time.Sleep(time.Second)
 		}
 	}
 }
@@ -56,8 +58,7 @@ func main() {
 func connectToServer(serverAddress string) error {
 	conn, err := net.Dial("tcp", serverAddress)
 	if err != nil {
-		log.WithError(err).Error("Could not connect to the server")
-		os.Exit(0)
+		return errors.New("Could not establish connection to server yet")
 	}
 	encoder := json.NewEncoder(conn)
 	decoder := json.NewDecoder(conn)
@@ -73,7 +74,7 @@ func connectToServer(serverAddress string) error {
 		if err != nil {
 			log.WithField("message", response).WithError(err).Error("Server responded unusually - reconnecting")
 			conn.Close()
-			return nil
+			return errors.New("Issue when receiving work from server")
 		}
 		log.Tracef("Response: %+v", response)
 		switch response.Message {
@@ -99,6 +100,9 @@ func connectToServer(serverAddress string) error {
 			encoder.Encode(common.WorkerMessage{Message: "work done"})
 			// Work is done - return to being a ready worker by reconnecting
 			return nil
+		case "shutdown":
+			log.Info("Server told us to shut down - all work is done for today")
+			os.Exit(0)
 		}
 	}
 }

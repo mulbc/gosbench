@@ -21,11 +21,12 @@ const (
 
 // S3Configuration contains all information to connect to a certain S3 endpoint
 type S3Configuration struct {
-	AccessKey string        `yaml:"access_key"`
-	SecretKey string        `yaml:"secret_key"`
-	Region    string        `yaml:"region"`
-	Endpoint  string        `yaml:"endpoint"`
-	Timeout   time.Duration `yaml:"timeout"`
+	AccessKey     string        `yaml:"access_key"`
+	SecretKey     string        `yaml:"secret_key"`
+	Region        string        `yaml:"region"`
+	Endpoint      string        `yaml:"endpoint"`
+	Timeout       time.Duration `yaml:"timeout"`
+	SkipSSLVerify bool          `yaml:"skipSSLverify"`
 }
 
 // GrafanaConfiguration contains all information necessary to add annotations

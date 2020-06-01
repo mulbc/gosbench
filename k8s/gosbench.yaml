@@ -4,18 +4,11 @@ kind: ConfigMap
 data:
   config.yml: |-
     s3_config:
-      - access_key: abc
-        secret_key: as
+      - access_key: 8MKI...
+        secret_key: Y7quDBT...
         region: eu-central-1
-        endpoint:
-      - access_key: def
-        secret_key: as
-        region: eu-central-2
-        endpoint:
-      - access_key: ghi
-        secret_key: as
-        region: eu-central-3
-        endpoint:
+        endpoint: https://172.30.196.58:443
+        skipSSLverify: true
 
     # For generating annotations when we start/stop testcases
     # https://grafana.com/docs/http_api/annotations/#create-annotation
@@ -71,7 +64,7 @@ metadata:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: worker1
+  name: gosbench-worker1
   labels:
     app: gosbench-worker1
 spec:
@@ -81,9 +74,10 @@ spec:
         app: gosbench
     spec:
       containers:
-        - name: worker
-          image: quay.io/mulbc/goroom-worker
-          command: ['./main', '-s', 'gosbench-server:2000']
+        - name: gosbench-worker
+          image: quay.io/mulbc/goroom-worker:dev4
+          imagePullPolicy: Always
+          command: ['./main', '-d', '-s', 'gosbench-server:2000']
           ports:
             - containerPort: 8888
       restartPolicy: Never
@@ -91,7 +85,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: worker2
+  name: gosbench-worker2
   labels:
     app: gosbench-worker2
 spec:
@@ -101,9 +95,10 @@ spec:
         app: gosbench
     spec:
       containers:
-        - name: worker
-          image: quay.io/mulbc/goroom-worker
-          command: ['./main', '-s', 'gosbench-server:2000']
+        - name: gosbench-worker
+          image: quay.io/mulbc/goroom-worker:dev4
+          imagePullPolicy: Always
+          command: ['./main', '-d', '-s', 'gosbench-server:2000']
           ports:
             - containerPort: 8888
       restartPolicy: Never
@@ -126,7 +121,8 @@ spec:
     spec:
       containers:
         - name: server
-          image: quay.io/mulbc/goroom-server
+          image: quay.io/mulbc/goroom-server:dev4
+          imagePullPolicy: Always
           command: ['./main', '-c', '/app/config/config.yml']
           ports:
             - containerPort: 2000
@@ -164,7 +160,7 @@ spec:
     - port: 8888
       targetPort: 8888
   selector:
-    job-name: worker1
+    job-name: gosbench-worker1
 ---
 apiVersion: v1
 kind: Service
@@ -178,5 +174,5 @@ spec:
     - port: 8888
       targetPort: 8888
   selector:
-    job-name: worker2
+    job-name: gosbench-worker2
 ...
