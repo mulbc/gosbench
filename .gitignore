@@ -3,3 +3,4 @@ testconf.yaml
 modd.conf
 main
 dist/
+k8s/gosbench.yaml

@@ -4,8 +4,8 @@ kind: ConfigMap
 data:
   config.yml: |-
     s3_config:
-      - access_key: 8MKI...
-        secret_key: Y7quDBT...
+      - access_key: 8MKI7yLHF2L5Z07rabTZ
+        secret_key: Y7quDBT3az/emhiDOiQR18hZLKzFaKUjOU4YyPCP
         region: eu-central-1
         endpoint: https://172.30.196.58:443
         skipSSLverify: true
@@ -18,7 +18,8 @@ data:
       password: grafana
 
     tests:
-      - read_weight: 20
+      - name: EverythingWorks
+        read_weight: 20
         write_weight: 80
         delete_weight: 0
         list_weight: 0
@@ -29,8 +30,8 @@ data:
           # distribution: constant, random, sequential
           size_distribution: random
           unit: KB
-          number_min: 10
-          number_max: 10
+          number_min: 100
+          number_max: 100
           # distribution: constant, random, sequential
           number_distribution: constant
         buckets:
@@ -39,14 +40,53 @@ data:
           # distribution: constant, random, sequential
           number_distribution: constant
         # Name prefix for buckets and objects
-        bucket_prefix: 1255gosbench-
+        bucket_prefix: gosbench1-
         object_prefix: obj
         # End after a set amount of time
         # Runtime in time.Duration - do not forget the unit please
         # stop_with_runtime: 60s # Example with 60 seconds runtime
         stop_with_runtime:
         # End after a set amount of operations (per worker)
-        stop_with_ops: 10
+        stop_with_ops: 3000
+        # Number of s3 performance test servers to run in parallel
+        workers: 2
+        # Set wheter workers share the same buckets or not
+        # If set to True - bucket names will have the worker # appended
+        workers_share_buckets: True
+        # Number of requests processed in parallel by each worker
+        parallel_clients: 3
+        # Remove all generated buckets and its content after run
+        clean_after: True
+      - name: EverythingWorksAgain
+        read_weight: 20
+        write_weight: 80
+        delete_weight: 0
+        list_weight: 0
+        objects:
+          size_min: 5
+          size_max: 100
+          part_size: 0
+          # distribution: constant, random, sequential
+          size_distribution: random
+          unit: KB
+          number_min: 100
+          number_max: 100
+          # distribution: constant, random, sequential
+          number_distribution: constant
+        buckets:
+          number_min: 1
+          number_max: 10
+          # distribution: constant, random, sequential
+          number_distribution: constant
+        # Name prefix for buckets and objects
+        bucket_prefix: gosbench1-
+        object_prefix: obj
+        # End after a set amount of time
+        # Runtime in time.Duration - do not forget the unit please
+        # stop_with_runtime: 60s # Example with 60 seconds runtime
+        stop_with_runtime:
+        # End after a set amount of operations (per worker)
+        stop_with_ops: 3000
         # Number of s3 performance test servers to run in parallel
         workers: 2
         # Set wheter workers share the same buckets or not
@@ -75,7 +115,7 @@ spec:
     spec:
       containers:
         - name: gosbench-worker
-          image: quay.io/mulbc/goroom-worker:dev4
+          image: quay.io/mulbc/gosbench-worker
           imagePullPolicy: Always
           command: ['./main', '-d', '-s', 'gosbench-server:2000']
           ports:
@@ -96,7 +136,7 @@ spec:
     spec:
       containers:
         - name: gosbench-worker
-          image: quay.io/mulbc/goroom-worker:dev4
+          image: quay.io/mulbc/gosbench-worker
           imagePullPolicy: Always
           command: ['./main', '-d', '-s', 'gosbench-server:2000']
           ports:
@@ -121,7 +161,7 @@ spec:
     spec:
       containers:
         - name: server
-          image: quay.io/mulbc/goroom-server:dev4
+          image: quay.io/mulbc/gosbench-server
           imagePullPolicy: Always
           command: ['./main', '-c', '/app/config/config.yml']
           ports:

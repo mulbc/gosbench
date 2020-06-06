@@ -18,6 +18,7 @@ import (
 
 	"contrib.go.opencensus.io/exporter/prometheus"
 	"github.com/mulbc/gosbench/common"
+	prom "github.com/prometheus/client_golang/prometheus"
 	"go.opencensus.io/plugin/ochttp"
 	"go.opencensus.io/stats/view"
 )
@@ -25,6 +26,13 @@ import (
 var svc, housekeepingSvc *s3.S3
 var ctx context.Context
 var hc *http.Client
+var promRegistry = prom.NewRegistry()
+var promTestGauge = prom.NewGaugeVec(
+	prom.GaugeOpts{
+		Name:      "test_in_progress",
+		Namespace: "gosbench",
+		Help:      "Determines if a job is in progress for Grafana annotations",
+	}, []string{"testName"})
 
 func init() {
 	// Then create the prometheus stat exporter
@@ -33,9 +41,15 @@ func init() {
 		ConstLabels: map[string]string{
 			"version": "0.0.1",
 		},
+		Registry: promRegistry,
 	})
 	if err != nil {
 		log.WithError(err).Fatalf("Failed to create the Prometheus exporter:")
+	}
+
+	err = promRegistry.Register(promTestGauge)
+	if err != nil {
+		log.WithError(err).Error("Issues when adding test_in_progress gauge to Prometheus registry")
 	}
 
 	if err := view.Register([]*view.View{
@@ -71,7 +85,6 @@ func InitS3(config common.S3Configuration) {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipSSLVerify},
 	}
 	tr2 := &ochttp.Transport{Base: tr}
-	// tr2.(*http.RoundTripper).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipSSLVerify}
 	hc = &http.Client{
 		Transport: tr2,
 	}
@@ -134,28 +147,29 @@ func putObject(service *s3.S3, objectName string, objectContent io.ReadSeeker, b
 	return err
 }
 
-func getObjectProperties(service *s3.S3, objectName string, bucket string) {
-	service.ListObjects(&s3.ListObjectsInput{
-		Bucket: &bucket,
-	})
-	result, err := service.GetObjectWithContext(ctx, &s3.GetObjectInput{
-		Bucket: &bucket,
-		Key:    &objectName,
-	})
-	if err != nil {
-		// Cast err to awserr.Error to handle specific error codes.
-		aerr, ok := err.(awserr.Error)
-		if ok && aerr.Code() == s3.ErrCodeNoSuchKey {
-			log.WithError(aerr).Errorf("Could not find object %s in bucket %s when querying properties", objectName, bucket)
-		}
-	}
+// func getObjectProperties(service *s3.S3, objectName string, bucket string) {
+// 	service.ListObjects(&s3.ListObjectsInput{
+// 		Bucket: &bucket,
+// 	})
+// 	result, err := service.GetObjectWithContext(ctx, &s3.GetObjectInput{
+// 		Bucket: &bucket,
+// 		Key:    &objectName,
+// 	})
+// 	if err != nil {
+// 		// Cast err to awserr.Error to handle specific error codes.
+// 		aerr, ok := err.(awserr.Error)
+// 		if ok && aerr.Code() == s3.ErrCodeNoSuchKey {
+// 			log.WithError(aerr).Errorf("Could not find object %s in bucket %s when querying properties", objectName, bucket)
+// 		}
+// 	}
 
-	// Make sure to close the body when done with it for S3 GetObject APIs or
-	// will leak connections.
-	defer result.Body.Close()
+// 	// Make sure to close the body when done with it for S3 GetObject APIs or
+// 	// will leak connections.
+// 	defer result.Body.Close()
 
-	log.Debugf("Object Properties:\n%+v", result)
-}
+// 	log.Debugf("Object Properties:\n%+v", result)
+// }
+
 func listObjects(service *s3.S3, prefix string, bucket string) (*s3.ListObjectsOutput, error) {
 	result, err := service.ListObjects(&s3.ListObjectsInput{
 		Bucket: &bucket,
@@ -188,7 +202,7 @@ func deleteObject(service *s3.S3, objectName string, bucket string) error {
 	_, err := service.DeleteObjectsWithContext(ctx, &s3.DeleteObjectsInput{
 		Bucket: &bucket,
 		Delete: &s3.Delete{
-			Objects: []*s3.ObjectIdentifier{&s3.ObjectIdentifier{Key: &objectName}},
+			Objects: []*s3.ObjectIdentifier{{Key: &objectName}},
 		},
 	})
 	if err != nil {

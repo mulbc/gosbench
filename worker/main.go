@@ -63,7 +63,7 @@ func connectToServer(serverAddress string) error {
 	encoder := json.NewEncoder(conn)
 	decoder := json.NewDecoder(conn)
 
-	encoder.Encode("ready for work")
+	_ = encoder.Encode("ready for work")
 
 	var response common.WorkerMessage
 	Workqueue := &Workqueue{
@@ -86,10 +86,13 @@ func connectToServer(serverAddress string) error {
 			fillWorkqueue(config.Test, Workqueue, config.WorkerID, config.Test.WorkerShareBuckets)
 
 			for _, work := range *Workqueue.Queue {
-				work.Prepare()
+				err = work.Prepare()
+				if err != nil {
+					log.WithError(err).Error("Error during work preparation - ignoring")
+				}
 			}
 			log.Info("Preparations finished - waiting on server to start work")
-			encoder.Encode(common.WorkerMessage{Message: "preparations done"})
+			_ = encoder.Encode(common.WorkerMessage{Message: "preparations done"})
 		case "start work":
 			if config == (common.WorkerConf{}) || len(*Workqueue.Queue) == 0 {
 				log.Fatal("Was instructed to start work - but the preparation step is incomplete - reconnecting")
@@ -97,7 +100,7 @@ func connectToServer(serverAddress string) error {
 			}
 			log.Info("Starting to work")
 			PerfTest(config.Test, Workqueue, config.WorkerID)
-			encoder.Encode(common.WorkerMessage{Message: "work done"})
+			_ = encoder.Encode(common.WorkerMessage{Message: "work done"})
 			// Work is done - return to being a ready worker by reconnecting
 			return nil
 		case "shutdown":
@@ -111,6 +114,8 @@ func connectToServer(serverAddress string) error {
 func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, workerID string) {
 	workChannel := make(chan WorkItem, len(*Workqueue.Queue))
 	doneChannel := make(chan bool)
+
+	promTestGauge.WithLabelValues(testConfig.Name).Inc()
 	for worker := 0; worker < testConfig.ParallelClients; worker++ {
 		go DoWork(workChannel, doneChannel)
 	}
@@ -125,13 +130,21 @@ func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, wo
 		<-doneChannel
 	}
 	log.Info("All clients finished")
+	promTestGauge.WithLabelValues(testConfig.Name).Dec()
+
 	if testConfig.CleanAfter {
 		log.Info("Housekeeping started")
 		for _, work := range *Workqueue.Queue {
-			work.Clean()
+			err := work.Clean()
+			if err != nil {
+				log.WithError(err).Error("Error during cleanup - ignoring")
+			}
 		}
 		for bucket := uint64(0); bucket < testConfig.Buckets.NumberMax; bucket++ {
-			deleteBucket(housekeepingSvc, fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket))
+			err := deleteBucket(housekeepingSvc, fmt.Sprintf("%s%s%d", workerID, testConfig.BucketPrefix, bucket))
+			if err != nil {
+				log.WithError(err).Error("Error during bucket deleting - ignoring")
+			}
 		}
 		log.Info("Housekeeping finished")
 	}
@@ -154,7 +167,10 @@ func workUntilTimeout(Workqueue *Workqueue, workChannel chan WorkItem, runtime t
 			switch work.(type) {
 			case DeleteOperation:
 				log.Debug("Re-Running Work preparation for delete job started")
-				work.Prepare()
+				err := work.Prepare()
+				if err != nil {
+					log.WithError(err).Error("Error during work preparation - ignoring")
+				}
 				log.Debug("Delete preparation re-run finished")
 			}
 		}
@@ -179,7 +195,10 @@ func workUntilOps(Workqueue *Workqueue, workChannel chan WorkItem, maxOps uint64
 			switch work.(type) {
 			case DeleteOperation:
 				log.Debug("Re-Running Work preparation for delete job started")
-				work.Prepare()
+				err := work.Prepare()
+				if err != nil {
+					log.WithError(err).Error("Error during work preparation - ignoring")
+				}
 				log.Debug("Delete preparation re-run finished")
 			}
 		}
@@ -231,7 +250,10 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 			nextOp := GetNextOperation(Workqueue)
 			switch nextOp {
 			case "read":
-				IncreaseOperationValue(nextOp, 1/float64(testConfig.ReadWeight), Workqueue)
+				err := IncreaseOperationValue(nextOp, 1/float64(testConfig.ReadWeight), Workqueue)
+				if err != nil {
+					log.WithError(err).Error("Could not increase operational Value - ignoring")
+				}
 				new := ReadOperation{
 					Bucket:                   bucketName,
 					ObjectName:               fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
@@ -240,7 +262,10 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
 			case "existing_read":
-				IncreaseOperationValue(nextOp, 1/float64(testConfig.ExistingReadWeight), Workqueue)
+				err := IncreaseOperationValue(nextOp, 1/float64(testConfig.ExistingReadWeight), Workqueue)
+				if err != nil {
+					log.WithError(err).Error("Could not increase operational Value - ignoring")
+				}
 				new := ReadOperation{
 					// TODO: Get bucket and object that already exist
 					Bucket:                   bucketName,
@@ -250,7 +275,10 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
 			case "write":
-				IncreaseOperationValue(nextOp, 1/float64(testConfig.WriteWeight), Workqueue)
+				err := IncreaseOperationValue(nextOp, 1/float64(testConfig.WriteWeight), Workqueue)
+				if err != nil {
+					log.WithError(err).Error("Could not increase operational Value - ignoring")
+				}
 				new := WriteOperation{
 					Bucket:     bucketName,
 					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
@@ -258,7 +286,10 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
 			case "list":
-				IncreaseOperationValue(nextOp, 1/float64(testConfig.ListWeight), Workqueue)
+				err := IncreaseOperationValue(nextOp, 1/float64(testConfig.ListWeight), Workqueue)
+				if err != nil {
+					log.WithError(err).Error("Could not increase operational Value - ignoring")
+				}
 				new := ListOperation{
 					Bucket:     bucketName,
 					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
@@ -266,7 +297,10 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
 			case "delete":
-				IncreaseOperationValue(nextOp, 1/float64(testConfig.DeleteWeight), Workqueue)
+				err := IncreaseOperationValue(nextOp, 1/float64(testConfig.DeleteWeight), Workqueue)
+				if err != nil {
+					log.WithError(err).Error("Could not increase operational Value - ignoring")
+				}
 				new := DeleteOperation{
 					Bucket:     bucketName,
 					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),

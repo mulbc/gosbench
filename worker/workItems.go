@@ -202,7 +202,10 @@ func DoWork(workChannel chan WorkItem, doneChannel chan bool) {
 				doneChannel <- true
 				return
 			}
-			work.Do()
+			err := work.Do()
+			if err != nil {
+				log.WithError(err).Error("Issues when performing work - ignoring")
+			}
 		}
 	}
 }

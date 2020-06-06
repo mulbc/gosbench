@@ -24,7 +24,7 @@ func Test_loadConfigFromFile(t *testing.T) {
   - access_key: secretKey
     secret_key: secretSecret
     endpoint: test`)}, common.Testconf{
-			S3Config: []*common.S3Configuration{&common.S3Configuration{
+			S3Config: []*common.S3Configuration{{
 				Endpoint:  "test",
 				AccessKey: "secretKey",
 				SecretKey: "secretSecret",

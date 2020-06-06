@@ -151,7 +151,7 @@ func scheduleTests(config common.Testconf) {
 func executeTestOnWorker(conn *net.Conn, config *common.WorkerConf, doneChannel chan bool, continueWorkers chan bool) {
 	encoder := json.NewEncoder(*conn)
 	decoder := json.NewDecoder(*conn)
-	encoder.Encode(common.WorkerMessage{Message: "init", Config: config})
+	_ = encoder.Encode(common.WorkerMessage{Message: "init", Config: config})
 
 	var response common.WorkerMessage
 	for {
@@ -166,7 +166,7 @@ func executeTestOnWorker(conn *net.Conn, config *common.WorkerConf, doneChannel 
 		case "preparations done":
 			doneChannel <- true
 			<-continueWorkers
-			encoder.Encode(common.WorkerMessage{Message: "start work"})
+			_ = encoder.Encode(common.WorkerMessage{Message: "start work"})
 		case "work done":
 			doneChannel <- true
 			(*conn).Close()
@@ -178,5 +178,5 @@ func executeTestOnWorker(conn *net.Conn, config *common.WorkerConf, doneChannel 
 func shutdownWorker(conn *net.Conn) {
 	encoder := json.NewEncoder(*conn)
 	log.WithField("Worker", (*conn).RemoteAddr()).Info("Shutting down worker")
-	encoder.Encode(common.WorkerMessage{Message: "shutdown"})
+	_ = encoder.Encode(common.WorkerMessage{Message: "shutdown"})
 }
