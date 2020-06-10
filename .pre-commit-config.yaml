@@ -6,12 +6,12 @@ repos:
   hooks:
   -   id: trailing-whitespace
   -   id: end-of-file-fixer
-  -   id: check-yaml
   -   id: check-added-large-files
   -   id: check-case-conflict
   -   id: check-executables-have-shebangs
   -   id: check-merge-conflict
   -   id: check-yaml
+      args: ['--allow-multiple-documents']
   -   id: detect-aws-credentials
   -   id: trailing-whitespace
 - repo: https://github.com/syntaqx/git-hooks
