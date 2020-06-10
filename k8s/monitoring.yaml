@@ -19,6 +19,44 @@ data:
           - targets:
             - gosbench-worker1:8888
             - gosbench-worker2:8888
+            - gosbench-worker3:8888
+            - gosbench-worker4:8888
+            - gosbench-worker5:8888
+            - gosbench-worker6:8888
+            - gosbench-worker7:8888
+            - gosbench-worker8:8888
+            - gosbench-worker9:8888
+            - gosbench-worker10:8888
+            - gosbench-worker11:8888
+            - gosbench-worker12:8888
+            - gosbench-worker13:8888
+            - gosbench-worker14:8888
+            - gosbench-worker15:8888
+            - gosbench-worker16:8888
+            - gosbench-worker17:8888
+            - gosbench-worker18:8888
+            - gosbench-worker19:8888
+            - gosbench-worker20:8888
+            - gosbench-worker21:8888
+            - gosbench-worker22:8888
+            - gosbench-worker23:8888
+            - gosbench-worker24:8888
+            - gosbench-worker25:8888
+            - gosbench-worker26:8888
+            - gosbench-worker27:8888
+            - gosbench-worker28:8888
+            - gosbench-worker29:8888
+            - gosbench-worker30:8888
+            - gosbench-worker31:8888
+            - gosbench-worker32:8888
+            - gosbench-worker33:8888
+            - gosbench-worker34:8888
+            - gosbench-worker35:8888
+            - gosbench-worker36:8888
+            - gosbench-worker37:8888
+            - gosbench-worker38:8888
+            - gosbench-worker39:8888
+            - gosbench-worker40:8888
 metadata:
   name: prom-config
   labels:
