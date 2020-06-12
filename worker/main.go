@@ -148,6 +148,8 @@ func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, wo
 		}
 		log.Info("Housekeeping finished")
 	}
+	// Sleep to ensure Prometheus can still scrape the last information before we restart the worker
+	time.Sleep(10 * time.Second)
 }
 
 func workUntilTimeout(Workqueue *Workqueue, workChannel chan WorkItem, runtime time.Duration) {
