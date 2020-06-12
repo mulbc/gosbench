@@ -58,7 +58,8 @@ func main() {
 func connectToServer(serverAddress string) error {
 	conn, err := net.Dial("tcp", serverAddress)
 	if err != nil {
-		return errors.New("Could not establish connection to server yet")
+		// return errors.New("Could not establish connection to server yet")
+		return err
 	}
 	encoder := json.NewEncoder(conn)
 	decoder := json.NewDecoder(conn)
@@ -115,7 +116,8 @@ func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, wo
 	workChannel := make(chan WorkItem, len(*Workqueue.Queue))
 	doneChannel := make(chan bool)
 
-	promTestGauge.WithLabelValues(testConfig.Name).Inc()
+	promTestStartGauge.WithLabelValues(testConfig.Name).Set(float64(time.Now().UTC().UnixNano() / int64(1000000)))
+	// promTestGauge.WithLabelValues(testConfig.Name).Inc()
 	for worker := 0; worker < testConfig.ParallelClients; worker++ {
 		go DoWork(workChannel, doneChannel)
 	}
@@ -130,7 +132,7 @@ func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, wo
 		<-doneChannel
 	}
 	log.Info("All clients finished")
-	promTestGauge.WithLabelValues(testConfig.Name).Dec()
+	promTestEndGauge.WithLabelValues(testConfig.Name).Set(float64(time.Now().UTC().UnixNano() / int64(1000000)))
 
 	if testConfig.CleanAfter {
 		log.Info("Housekeeping started")
