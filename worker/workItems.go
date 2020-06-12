@@ -135,20 +135,20 @@ func (op ReadOperation) Do() error {
 
 // Do executes the actual work of the WriteOperation
 func (op WriteOperation) Do() error {
-	log.Debug("Doing WriteOperation")
+	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Doing WriteOperation")
 	return putObject(svc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
 // Do executes the actual work of the ListOperation
 func (op ListOperation) Do() error {
-	log.Debug("Doing ListOperation")
+	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Doing ListOperation")
 	_, err := listObjects(svc, op.ObjectName, op.Bucket)
 	return err
 }
 
 // Do executes the actual work of the DeleteOperation
 func (op DeleteOperation) Do() error {
-	log.Debug("Doing DeleteOperation")
+	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Doing DeleteOperation")
 	return deleteObject(svc, op.ObjectName, op.Bucket)
 }
 
