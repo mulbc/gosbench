@@ -27,11 +27,17 @@ var svc, housekeepingSvc *s3.S3
 var ctx context.Context
 var hc *http.Client
 var promRegistry = prom.NewRegistry()
-var promTestGauge = prom.NewGaugeVec(
+var promTestStartGauge = prom.NewGaugeVec(
 	prom.GaugeOpts{
-		Name:      "test_in_progress",
+		Name:      "test_start",
 		Namespace: "gosbench",
-		Help:      "Determines if a job is in progress for Grafana annotations",
+		Help:      "Determines the start time of a job for Grafana annotations",
+	}, []string{"testName"})
+var promTestEndGauge = prom.NewGaugeVec(
+	prom.GaugeOpts{
+		Name:      "test_end",
+		Namespace: "gosbench",
+		Help:      "Determines the end time of a job for Grafana annotations",
 	}, []string{"testName"})
 
 func init() {
@@ -47,9 +53,13 @@ func init() {
 		log.WithError(err).Fatalf("Failed to create the Prometheus exporter:")
 	}
 
-	err = promRegistry.Register(promTestGauge)
+	err = promRegistry.Register(promTestStartGauge)
 	if err != nil {
-		log.WithError(err).Error("Issues when adding test_in_progress gauge to Prometheus registry")
+		log.WithError(err).Error("Issues when adding test_start gauge to Prometheus registry")
+	}
+	err = promRegistry.Register(promTestEndGauge)
+	if err != nil {
+		log.WithError(err).Error("Issues when adding test_end gauge to Prometheus registry")
 	}
 
 	if err := view.Register([]*view.View{
