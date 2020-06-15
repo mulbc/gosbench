@@ -49,7 +49,7 @@ func main() {
 	for {
 		err := connectToServer(serverAddress)
 		if err != nil {
-			log.WithError(err).Fatal("Issues with server connection")
+			log.WithError(err).Error("Issues with server connection")
 			time.Sleep(time.Second)
 		}
 	}
@@ -116,7 +116,7 @@ func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, wo
 	workChannel := make(chan WorkItem, len(*Workqueue.Queue))
 	doneChannel := make(chan bool)
 
-	promTestStartGauge.WithLabelValues(testConfig.Name).Set(float64(time.Now().UTC().UnixNano() / int64(1000000)))
+	promTestStart.WithLabelValues(testConfig.Name).Set(float64(time.Now().UTC().UnixNano() / int64(1000000)))
 	// promTestGauge.WithLabelValues(testConfig.Name).Inc()
 	for worker := 0; worker < testConfig.ParallelClients; worker++ {
 		go DoWork(workChannel, doneChannel)
@@ -132,7 +132,7 @@ func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, wo
 		<-doneChannel
 	}
 	log.Info("All clients finished")
-	promTestEndGauge.WithLabelValues(testConfig.Name).Set(float64(time.Now().UTC().UnixNano() / int64(1000000)))
+	promTestEnd.WithLabelValues(testConfig.Name).Set(float64(time.Now().UTC().UnixNano() / int64(1000000)))
 
 	if testConfig.CleanAfter {
 		log.Info("Housekeeping started")
@@ -259,6 +259,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 					log.WithError(err).Error("Could not increase operational Value - ignoring")
 				}
 				new := ReadOperation{
+					TestName:                 testConfig.Name,
 					Bucket:                   bucketName,
 					ObjectName:               fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
 					ObjectSize:               objectSize,
@@ -271,7 +272,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 					log.WithError(err).Error("Could not increase operational Value - ignoring")
 				}
 				new := ReadOperation{
-					// TODO: Get bucket and object that already exist
+					TestName:                 testConfig.Name,
 					Bucket:                   bucketName,
 					ObjectName:               *PreExistingObjects.Contents[object%PreExistingObjectCount].Key,
 					ObjectSize:               uint64(*PreExistingObjects.Contents[object%PreExistingObjectCount].Size),
@@ -284,6 +285,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 					log.WithError(err).Error("Could not increase operational Value - ignoring")
 				}
 				new := WriteOperation{
+					TestName:   testConfig.Name,
 					Bucket:     bucketName,
 					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
 					ObjectSize: objectSize,
@@ -295,6 +297,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 					log.WithError(err).Error("Could not increase operational Value - ignoring")
 				}
 				new := ListOperation{
+					TestName:   testConfig.Name,
 					Bucket:     bucketName,
 					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
 					ObjectSize: objectSize,
@@ -306,6 +309,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 					log.WithError(err).Error("Could not increase operational Value - ignoring")
 				}
 				new := DeleteOperation{
+					TestName:   testConfig.Name,
 					Bucket:     bucketName,
 					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
 					ObjectSize: objectSize,

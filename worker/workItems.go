@@ -21,6 +21,7 @@ type WorkItem interface {
 
 // ReadOperation stands for a read operation
 type ReadOperation struct {
+	TestName                 string
 	Bucket                   string
 	ObjectName               string
 	ObjectSize               uint64
@@ -29,6 +30,7 @@ type ReadOperation struct {
 
 // WriteOperation stands for a write operation
 type WriteOperation struct {
+	TestName   string
 	Bucket     string
 	ObjectName string
 	ObjectSize uint64
@@ -36,6 +38,7 @@ type WriteOperation struct {
 
 // ListOperation stands for a list operation
 type ListOperation struct {
+	TestName   string
 	Bucket     string
 	ObjectName string
 	ObjectSize uint64
@@ -43,6 +46,7 @@ type ListOperation struct {
 
 // DeleteOperation stands for a delete operation
 type DeleteOperation struct {
+	TestName   string
 	Bucket     string
 	ObjectName string
 	ObjectSize uint64
@@ -130,26 +134,63 @@ func (op Stopper) Prepare() error {
 // Do executes the actual work of the ReadOperation
 func (op ReadOperation) Do() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).WithField("Preexisting?", op.WorksOnPreexistingObject).Debug("Doing ReadOperation")
-	return getObject(svc, op.ObjectName, op.Bucket)
+	start := time.Now()
+	err := getObject(svc, op.ObjectName, op.Bucket)
+	duration := time.Since(start)
+	promLatency.WithLabelValues(op.TestName, "GET").Observe(float64(duration.Milliseconds()))
+	if err != nil {
+		promFailedOps.WithLabelValues(op.TestName, "GET").Inc()
+	} else {
+		promFinishedOps.WithLabelValues(op.TestName, "GET").Inc()
+	}
+	promDownloadedBytes.WithLabelValues(op.TestName, "GET").Add(float64(op.ObjectSize))
+	return err
 }
 
 // Do executes the actual work of the WriteOperation
 func (op WriteOperation) Do() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Doing WriteOperation")
-	return putObject(svc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
+	start := time.Now()
+	err := putObject(svc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
+	duration := time.Since(start)
+	promLatency.WithLabelValues(op.TestName, "PUT").Observe(float64(duration.Milliseconds()))
+	if err != nil {
+		promFailedOps.WithLabelValues(op.TestName, "PUT").Inc()
+	} else {
+		promFinishedOps.WithLabelValues(op.TestName, "PUT").Inc()
+	}
+	promUploadedBytes.WithLabelValues(op.TestName, "PUT").Add(float64(op.ObjectSize))
+	return err
 }
 
 // Do executes the actual work of the ListOperation
 func (op ListOperation) Do() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Doing ListOperation")
+	start := time.Now()
 	_, err := listObjects(svc, op.ObjectName, op.Bucket)
+	duration := time.Since(start)
+	promLatency.WithLabelValues(op.TestName, "LIST").Observe(float64(duration.Milliseconds()))
+	if err != nil {
+		promFailedOps.WithLabelValues(op.TestName, "LIST").Inc()
+	} else {
+		promFinishedOps.WithLabelValues(op.TestName, "LIST").Inc()
+	}
 	return err
 }
 
 // Do executes the actual work of the DeleteOperation
 func (op DeleteOperation) Do() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Doing DeleteOperation")
-	return deleteObject(svc, op.ObjectName, op.Bucket)
+	start := time.Now()
+	err := deleteObject(svc, op.ObjectName, op.Bucket)
+	duration := time.Since(start)
+	promLatency.WithLabelValues(op.TestName, "DELETE").Observe(float64(duration.Milliseconds()))
+	if err != nil {
+		promFailedOps.WithLabelValues(op.TestName, "DELETE").Inc()
+	} else {
+		promFinishedOps.WithLabelValues(op.TestName, "DELETE").Inc()
+	}
+	return err
 }
 
 // Do does nothing here

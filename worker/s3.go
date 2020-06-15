@@ -16,9 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	log "github.com/sirupsen/logrus"
 
-	"contrib.go.opencensus.io/exporter/prometheus"
 	"github.com/mulbc/gosbench/common"
-	prom "github.com/prometheus/client_golang/prometheus"
 	"go.opencensus.io/plugin/ochttp"
 	"go.opencensus.io/stats/view"
 )
@@ -26,42 +24,8 @@ import (
 var svc, housekeepingSvc *s3.S3
 var ctx context.Context
 var hc *http.Client
-var promRegistry = prom.NewRegistry()
-var promTestStartGauge = prom.NewGaugeVec(
-	prom.GaugeOpts{
-		Name:      "test_start",
-		Namespace: "gosbench",
-		Help:      "Determines the start time of a job for Grafana annotations",
-	}, []string{"testName"})
-var promTestEndGauge = prom.NewGaugeVec(
-	prom.GaugeOpts{
-		Name:      "test_end",
-		Namespace: "gosbench",
-		Help:      "Determines the end time of a job for Grafana annotations",
-	}, []string{"testName"})
 
 func init() {
-	// Then create the prometheus stat exporter
-	pe, err := prometheus.NewExporter(prometheus.Options{
-		Namespace: "gosbench",
-		ConstLabels: map[string]string{
-			"version": "0.0.1",
-		},
-		Registry: promRegistry,
-	})
-	if err != nil {
-		log.WithError(err).Fatalf("Failed to create the Prometheus exporter:")
-	}
-
-	err = promRegistry.Register(promTestStartGauge)
-	if err != nil {
-		log.WithError(err).Error("Issues when adding test_start gauge to Prometheus registry")
-	}
-	err = promRegistry.Register(promTestEndGauge)
-	if err != nil {
-		log.WithError(err).Error("Issues when adding test_end gauge to Prometheus registry")
-	}
-
 	if err := view.Register([]*view.View{
 		ochttp.ClientSentBytesDistribution,
 		ochttp.ClientReceivedBytesDistribution,
@@ -230,7 +194,14 @@ func createBucket(service *s3.S3, bucket string) error {
 	_, err := service.CreateBucket(&s3.CreateBucketInput{
 		Bucket: &bucket,
 	})
-	return err
+	if aerr, _ := err.(awserr.Error); err != nil {
+		// Ignore error if bucket already exists
+		if aerr.Code() == s3.ErrCodeBucketAlreadyExists {
+			return nil
+		}
+		log.WithField("Message", aerr.Message()).WithField("Code", aerr.Code()).Info("Issues when creating bucket")
+	}
+	return err.(awserr.Error)
 }
 
 func deleteBucket(service *s3.S3, bucket string) error {
