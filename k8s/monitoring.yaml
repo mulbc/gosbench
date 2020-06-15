@@ -237,6 +237,11 @@ spec:
 ---
 apiVersion: v1
 kind: ConfigMap
+metadata:
+  name: grafana-example-dashboard
+  labels:
+    app: gosbench-monitoring
+    type: grafana
 data:
   gosbench.json: |-
     {
@@ -259,25 +264,37 @@ data:
           {
             "datasource": "Prometheus",
             "enable": true,
-            "expr": "max without (instance) (gosbench_test_in_progress)",
+            "expr": "max without (instance) (gosbench_test_end)",
             "hide": false,
-            "iconColor": "#5794F2",
+            "iconColor": "rgba(255, 96, 96, 1)",
             "limit": 100,
-            "name": "tests",
+            "name": "test end",
             "showIn": 0,
-            "step": "1s",
-            "tagKeys": "",
             "tags": [],
-            "textFormat": "Test: {{ testName }}",
-            "titleFormat": "",
-            "type": "tags"
+            "textFormat": "End of test {{ testName }}",
+            "type": "tags",
+            "useValueForTime": true
+          },
+          {
+            "datasource": "Prometheus",
+            "enable": true,
+            "expr": "min without (instance) (gosbench_test_start)",
+            "hide": false,
+            "iconColor": "#73BF69",
+            "limit": 100,
+            "name": "test start",
+            "showIn": 0,
+            "tags": [],
+            "textFormat": "Start of test {{ testName }}",
+            "type": "tags",
+            "useValueForTime": true
           }
         ]
       },
       "editable": true,
       "gnetId": null,
       "graphTooltip": 1,
-      "iteration": 1591464520621,
+      "iteration": 1592245931516,
       "links": [
         {
           "asDropdown": true,
@@ -291,13 +308,435 @@ data:
       ],
       "panels": [
         {
-          "collapsed": true,
+          "collapsed": false,
           "datasource": null,
           "gridPos": {
             "h": 1,
             "w": 24,
             "x": 0,
             "y": 0
+          },
+          "id": 30,
+          "panels": [],
+          "title": "Gosbench native",
+          "type": "row"
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 12,
+            "w": 12,
+            "x": 0,
+            "y": 1
+          },
+          "hiddenSeries": false,
+          "id": 32,
+          "interval": "2s",
+          "legend": {
+            "alignAsTable": false,
+            "avg": true,
+            "current": false,
+            "hideZero": false,
+            "max": true,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "dataLinks": []
+          },
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [
+            {
+              "$$hashKey": "object:1927",
+              "alias": "/SUM/",
+              "yaxis": 2
+            }
+          ],
+          "spaceLength": 10,
+          "stack": true,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum by (method,testName) (irate(gosbench_finished_ops[2s]))",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "{{ testName }} {{ method }}",
+              "refId": "A"
+            },
+            {
+              "expr": "sum by (testName) (irate(gosbench_finished_ops[2s]))",
+              "interval": "",
+              "legendFormat": "SUM {{testName}}",
+              "refId": "B"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "S3 operation operations",
+          "tooltip": {
+            "shared": true,
+            "sort": 2,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:520",
+              "format": "ops",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "$$hashKey": "object:521",
+              "format": "ops",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 9,
+            "w": 12,
+            "x": 12,
+            "y": 1
+          },
+          "hiddenSeries": false,
+          "id": 33,
+          "interval": "2s",
+          "legend": {
+            "avg": true,
+            "current": false,
+            "max": true,
+            "min": true,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "options": {
+            "dataLinks": []
+          },
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(irate(gosbench_ops_latency_sum[2s]))",
+              "format": "time_series",
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "latency",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "S3 latency",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:1349",
+              "format": "µs",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "$$hashKey": "object:1350",
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "cards": {
+            "cardPadding": null,
+            "cardRound": null
+          },
+          "color": {
+            "cardColor": "#b4ff00",
+            "colorScale": "sqrt",
+            "colorScheme": "interpolateBlues",
+            "exponent": 0.5,
+            "mode": "spectrum"
+          },
+          "dataFormat": "timeseries",
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 10
+          },
+          "heatmap": {},
+          "hideZeroBuckets": false,
+          "highlightCards": true,
+          "id": 35,
+          "interval": "2s",
+          "legend": {
+            "show": false
+          },
+          "reverseYBuckets": false,
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(gosbench_ops_latency_bucket[5m])) by (le))",
+              "interval": "",
+              "legendFormat": "",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "95% S3 latency quantile",
+          "tooltip": {
+            "show": true,
+            "showHistogram": false
+          },
+          "type": "heatmap",
+          "xAxis": {
+            "show": true
+          },
+          "xBucketNumber": null,
+          "xBucketSize": null,
+          "yAxis": {
+            "decimals": null,
+            "format": "ms",
+            "logBase": 1,
+            "max": null,
+            "min": null,
+            "show": true,
+            "splitFactor": null
+          },
+          "yBucketBound": "auto",
+          "yBucketNumber": null,
+          "yBucketSize": null
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 10,
+            "w": 12,
+            "x": 0,
+            "y": 13
+          },
+          "hiddenSeries": false,
+          "id": 36,
+          "interval": "2s",
+          "legend": {
+            "avg": true,
+            "current": false,
+            "max": true,
+            "min": true,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "options": {
+            "dataLinks": []
+          },
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [
+            {
+              "$$hashKey": "object:2503",
+              "alias": "/received/",
+              "transform": "negative-Y"
+            },
+            {
+              "$$hashKey": "object:2504",
+              "alias": "SUM",
+              "yaxis": 2
+            }
+          ],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(irate(gosbench_uploaded_bytes[2s])) by (instance)",
+              "format": "time_series",
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "sent {{ instance}}",
+              "refId": "A"
+            },
+            {
+              "expr": "sum(irate(gosbench_downloaded_bytes[2s])) by (instance)",
+              "format": "time_series",
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "received {{ instance}}",
+              "refId": "B"
+            },
+            {
+              "expr": "abs(sum by (testName) (irate(gosbench_uploaded_bytes[2s]))) + abs(sum by (testName ) (irate(gosbench_downloaded_bytes[2s])))",
+              "format": "time_series",
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "SUM {{testName}}",
+              "refId": "C"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "S3 upload/download bandwidth",
+          "tooltip": {
+            "shared": true,
+            "sort": 2,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:1205",
+              "format": "Bps",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "$$hashKey": "object:1206",
+              "format": "Bps",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": true,
+            "alignLevel": null
+          }
+        },
+        {
+          "collapsed": true,
+          "datasource": null,
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 23
           },
           "id": 12,
           "panels": [
@@ -319,7 +758,7 @@ data:
                 "h": 7,
                 "w": 12,
                 "x": 0,
-                "y": 1
+                "y": 10
               },
               "hiddenSeries": false,
               "id": 5,
@@ -419,7 +858,7 @@ data:
                 "h": 7,
                 "w": 12,
                 "x": 12,
-                "y": 1
+                "y": 10
               },
               "hiddenSeries": false,
               "id": 6,
@@ -518,7 +957,7 @@ data:
                 "h": 7,
                 "w": 12,
                 "x": 0,
-                "y": 8
+                "y": 17
               },
               "hiddenSeries": false,
               "id": 7,
@@ -618,7 +1057,7 @@ data:
                 "h": 7,
                 "w": 12,
                 "x": 12,
-                "y": 8
+                "y": 17
               },
               "hiddenSeries": false,
               "id": 8,
@@ -725,7 +1164,7 @@ data:
                 "h": 7,
                 "w": 8,
                 "x": 0,
-                "y": 15
+                "y": 24
               },
               "hiddenSeries": false,
               "id": 9,
@@ -826,7 +1265,7 @@ data:
                 "h": 7,
                 "w": 8,
                 "x": 8,
-                "y": 15
+                "y": 24
               },
               "hiddenSeries": false,
               "id": 16,
@@ -927,7 +1366,7 @@ data:
                 "h": 7,
                 "w": 8,
                 "x": 16,
-                "y": 15
+                "y": 24
               },
               "hiddenSeries": false,
               "id": 10,
@@ -1031,7 +1470,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 1
+            "y": 24
           },
           "id": 20,
           "panels": [],
@@ -1067,11 +1506,11 @@ data:
             "h": 3,
             "w": 2,
             "x": 0,
-            "y": 2
+            "y": 25
           },
           "hideTimeOverride": false,
           "id": 22,
-          "interval": null,
+          "interval": "2s",
           "links": [],
           "mappingType": 1,
           "mappingTypes": [
@@ -1154,10 +1593,10 @@ data:
             "h": 3,
             "w": 2,
             "x": 2,
-            "y": 2
+            "y": 25
           },
           "id": 26,
-          "interval": null,
+          "interval": "2s",
           "links": [],
           "mappingType": 1,
           "mappingTypes": [
@@ -1230,10 +1669,11 @@ data:
             "h": 9,
             "w": 12,
             "x": 12,
-            "y": 2
+            "y": 25
           },
           "hiddenSeries": false,
           "id": 24,
+          "interval": "2s",
           "legend": {
             "avg": true,
             "current": false,
@@ -1265,15 +1705,17 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(gosbench_opencensus_io_http_client_completed_count[5m])) by (instance)",
+              "expr": "sum(irate(gosbench_opencensus_io_http_client_completed_count[2s])) by (instance)",
               "format": "time_series",
+              "interval": "",
               "intervalFactor": 1,
               "legendFormat": "{{instance}}",
               "refId": "A"
             },
             {
-              "expr": "sum(irate(gosbench_opencensus_io_http_client_completed_count[5m]))",
+              "expr": "sum(irate(gosbench_opencensus_io_http_client_completed_count[2s]))",
               "format": "time_series",
+              "interval": "",
               "intervalFactor": 1,
               "legendFormat": "SUM",
               "refId": "B"
@@ -1299,6 +1741,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:1277",
               "format": "ops",
               "label": null,
               "logBase": 1,
@@ -1307,6 +1750,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:1278",
               "format": "ops",
               "label": null,
               "logBase": 1,
@@ -1338,10 +1782,11 @@ data:
             "h": 9,
             "w": 12,
             "x": 0,
-            "y": 5
+            "y": 28
           },
           "hiddenSeries": false,
           "id": 18,
+          "interval": "2s",
           "legend": {
             "avg": true,
             "current": false,
@@ -1364,10 +1809,12 @@ data:
           "renderer": "flot",
           "seriesOverrides": [
             {
+              "$$hashKey": "object:2589",
               "alias": "/received/",
               "transform": "negative-Y"
             },
             {
+              "$$hashKey": "object:2590",
               "alias": "SUM",
               "yaxis": 2
             }
@@ -1377,23 +1824,23 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(gosbench_opencensus_io_http_client_sent_bytes_sum{}[1m])) by (instance)",
+              "expr": "sum(irate(gosbench_opencensus_io_http_client_sent_bytes_sum{}[2s])) by (instance)",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "sent{{ instance}}",
+              "legendFormat": "sent {{ instance}}",
               "refId": "A"
             },
             {
-              "expr": "sum(irate(gosbench_opencensus_io_http_client_received_bytes_sum{}[1m])) by (instance)",
+              "expr": "sum(irate(gosbench_opencensus_io_http_client_received_bytes_sum{}[2s])) by (instance)",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "received{{ instance}}",
+              "legendFormat": "received {{ instance}}",
               "refId": "B"
             },
             {
-              "expr": "abs(sum(irate(gosbench_opencensus_io_http_client_sent_bytes_sum{}[1m]))) + abs(sum(irate(gosbench_opencensus_io_http_client_received_bytes_sum{}[1m])))",
+              "expr": "abs(sum(irate(gosbench_opencensus_io_http_client_sent_bytes_sum{}[2s]))) + abs(sum(irate(gosbench_opencensus_io_http_client_received_bytes_sum{}[2s])))",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
@@ -1421,6 +1868,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:1205",
               "format": "Bps",
               "label": null,
               "logBase": 1,
@@ -1429,6 +1877,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:1206",
               "format": "Bps",
               "label": null,
               "logBase": 1,
@@ -1460,10 +1909,11 @@ data:
             "h": 9,
             "w": 12,
             "x": 12,
-            "y": 11
+            "y": 34
           },
           "hiddenSeries": false,
           "id": 28,
+          "interval": "2s",
           "legend": {
             "avg": true,
             "current": false,
@@ -1490,8 +1940,9 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(gosbench_opencensus_io_http_client_roundtrip_latency_sum[5m]))",
+              "expr": "sum(irate(gosbench_opencensus_io_http_client_roundtrip_latency_sum[2s]))",
               "format": "time_series",
+              "interval": "",
               "intervalFactor": 1,
               "legendFormat": "latency",
               "refId": "A"
@@ -1517,6 +1968,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:1349",
               "format": "µs",
               "label": null,
               "logBase": 1,
@@ -1525,6 +1977,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:1350",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -1625,8 +2078,8 @@ data:
         ]
       },
       "time": {
-        "from": "2020-06-06T17:28:00.225Z",
-        "to": "2020-06-06T17:31:29.465Z"
+        "from": "2020-06-15T18:58:39.079Z",
+        "to": "2020-06-15T19:00:05.381Z"
       },
       "timepicker": {
         "refresh_intervals": [
@@ -1657,9 +2110,4 @@ data:
       "uid": "R67SuKSZk",
       "version": 1
     }
-metadata:
-  name: grafana-example-dashboard
-  labels:
-    app: gosbench-monitoring
-    type: grafana
 ...
