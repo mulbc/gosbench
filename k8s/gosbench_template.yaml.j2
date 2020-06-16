@@ -126,7 +126,7 @@ spec:
     spec:
       containers:
         - name: server
-          image: quay.io/mulbc/gosbench-server
+          image: quay.io/mulbc/gosbench-server:latest
           imagePullPolicy: Always
           command: ['./main', '-c', '/app/config/config.yml']
           ports:
@@ -184,7 +184,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
         - name: gosbench-worker
-          image: quay.io/mulbc/gosbench-worker
+          image: quay.io/mulbc/gosbench-worker:latest
           imagePullPolicy: Always
           command: ['./main', '-d', '-s', 'gosbench-server:2000']
           ports:
