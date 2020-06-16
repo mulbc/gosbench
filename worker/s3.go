@@ -194,14 +194,15 @@ func createBucket(service *s3.S3, bucket string) error {
 	_, err := service.CreateBucket(&s3.CreateBucketInput{
 		Bucket: &bucket,
 	})
-	if aerr, _ := err.(awserr.Error); err != nil {
+	if err != nil {
+		aerr, _ := err.(awserr.Error)
 		// Ignore error if bucket already exists
 		if aerr.Code() == s3.ErrCodeBucketAlreadyExists {
 			return nil
 		}
 		log.WithField("Message", aerr.Message()).WithField("Code", aerr.Code()).Info("Issues when creating bucket")
 	}
-	return err.(awserr.Error)
+	return err
 }
 
 func deleteBucket(service *s3.S3, bucket string) error {
