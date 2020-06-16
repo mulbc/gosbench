@@ -21,8 +21,8 @@ data:
       - name: EverythingWorks
         read_weight: 20
         write_weight: 80
-        delete_weight: 0
-        list_weight: 0
+        delete_weight: 30
+        list_weight: 10
         objects:
           size_min: 5
           size_max: 100
@@ -56,12 +56,12 @@ data:
         # Number of requests processed in parallel by each worker
         parallel_clients: 3
         # Remove all generated buckets and its content after run
-        clean_after: True
+        clean_after: False
       - name: EverythingWorksAgain
-        read_weight: 20
-        write_weight: 80
-        delete_weight: 0
-        list_weight: 0
+        read_weight: 10
+        write_weight: 40
+        delete_weight: 80
+        list_weight: 10
         objects:
           size_min: 5
           size_max: 100
@@ -95,7 +95,7 @@ data:
         # Number of requests processed in parallel by each worker
         parallel_clients: 3
         # Remove all generated buckets and its content after run
-        clean_after: True
+        clean_after: False
 metadata:
   name: gosbench-config
   labels:
