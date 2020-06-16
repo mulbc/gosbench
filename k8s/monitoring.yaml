@@ -201,6 +201,7 @@ metadata:
   # annotations:
   #   volume.beta.kubernetes.io/storage-class: ocs-storagecluster-ceph-rbd
 spec:
+  persistentVolumeReclaimPolicy: Retain
   accessModes:
     - ReadWriteOnce
   resources:
