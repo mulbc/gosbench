@@ -88,12 +88,25 @@ type WorkerConf struct {
 	WorkerID string
 }
 
+// BenchResult is the struct that will contain the benchmark results from a
+// worker after it has finished its benchmark
+type BenchmarkResult struct {
+	TestName   string
+	Operations float64
+	Bytes      float64
+	// Bandwidth is the amount of Bytes per second of runtime
+	Bandwidth  float64
+	LatencyAvg float64
+	Duration   time.Duration
+}
+
 // WorkerMessage is the struct that is exchanged in the communication between
 // server and worker. It usually only contains a message, but during the init
 // phase, also contains the config for the worker
 type WorkerMessage struct {
-	Message string
-	Config  *WorkerConf
+	Message     string
+	Config      *WorkerConf
+	BenchResult BenchmarkResult
 }
 
 // CheckConfig checks the global config

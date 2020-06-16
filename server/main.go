@@ -108,6 +108,7 @@ func scheduleTests(config common.Testconf) {
 	for testNumber, test := range config.Tests {
 
 		doneChannel := make(chan bool, test.Workers)
+		resultChannel := make(chan common.BenchmarkResult, test.Workers)
 		continueWorkers := make(chan bool, test.Workers)
 		defer close(doneChannel)
 		defer close(continueWorkers)
@@ -120,26 +121,31 @@ func scheduleTests(config common.Testconf) {
 			}
 			workerConnection := <-readyWorkers
 			log.WithField("Worker", (*workerConnection).RemoteAddr()).Infof("We found worker %d / %d for test %d", worker+1, test.Workers, testNumber)
-			go executeTestOnWorker(workerConnection, workerConfig, doneChannel, continueWorkers)
+			go executeTestOnWorker(workerConnection, workerConfig, doneChannel, continueWorkers, resultChannel)
 		}
 		for worker := 0; worker < test.Workers; worker++ {
 			// Will halt until all workers are done with preparations
 			<-doneChannel
 		}
-		log.WithField("test", testNumber).Info("All workers have finished preparations - starting performance test")
-		startTime := time.Now().UTC().UnixNano() / int64(1000000)
 		// Add sleep after prep phase so that drives can relax
 		time.Sleep(5 * time.Second)
+		log.WithField("test", test.Name).Info("All workers have finished preparations - starting performance test")
+		startTime := time.Now().UTC()
 		for worker := 0; worker < test.Workers; worker++ {
 			continueWorkers <- true
 		}
+		var benchResults []common.BenchmarkResult
 		for worker := 0; worker < test.Workers; worker++ {
 			// Will halt until all workers are done with their work
 			<-doneChannel
+			benchResults = append(benchResults, <-resultChannel)
 		}
-		log.WithField("test", testNumber).Info("All workers have finished the performance test - continuing with next test")
-		stopTime := time.Now().UTC().UnixNano() / int64(1000000)
-		log.WithField("test", testNumber).Infof("GRAFANA: ?from=%d&to=%d", startTime, stopTime)
+		log.WithField("test", test.Name).Info("All workers have finished the performance test - continuing with next test")
+		stopTime := time.Now().UTC()
+		log.WithField("test", test.Name).Infof("GRAFANA: ?from=%d&to=%d", startTime.UnixNano()/int64(1000000), stopTime.UnixNano()/int64(1000000))
+		benchResult := sumBenchmarkResults(benchResults)
+		benchResult.Duration = stopTime.Sub(startTime)
+		log.WithField("test", test.Name).Infof("PERF RESULTS: %+v", benchResult)
 	}
 	log.Info("All performance tests finished")
 	for {
@@ -148,7 +154,7 @@ func scheduleTests(config common.Testconf) {
 	}
 }
 
-func executeTestOnWorker(conn *net.Conn, config *common.WorkerConf, doneChannel chan bool, continueWorkers chan bool) {
+func executeTestOnWorker(conn *net.Conn, config *common.WorkerConf, doneChannel chan bool, continueWorkers chan bool, resultChannel chan common.BenchmarkResult) {
 	encoder := json.NewEncoder(*conn)
 	decoder := json.NewDecoder(*conn)
 	_ = encoder.Encode(common.WorkerMessage{Message: "init", Config: config})
@@ -169,6 +175,7 @@ func executeTestOnWorker(conn *net.Conn, config *common.WorkerConf, doneChannel 
 			_ = encoder.Encode(common.WorkerMessage{Message: "start work"})
 		case "work done":
 			doneChannel <- true
+			resultChannel <- response.BenchResult
 			(*conn).Close()
 			return
 		}
@@ -179,4 +186,20 @@ func shutdownWorker(conn *net.Conn) {
 	encoder := json.NewEncoder(*conn)
 	log.WithField("Worker", (*conn).RemoteAddr()).Info("Shutting down worker")
 	_ = encoder.Encode(common.WorkerMessage{Message: "shutdown"})
+}
+
+func sumBenchmarkResults(results []common.BenchmarkResult) common.BenchmarkResult {
+	sum := common.BenchmarkResult{}
+	durations := float64(0)
+	latencyAverages := float64(0)
+	for _, result := range results {
+		sum.Bytes += result.Bytes
+		sum.Operations += result.Operations
+		latencyAverages += result.LatencyAvg
+		durations += result.Duration.Seconds()
+	}
+	sum.LatencyAvg = latencyAverages / float64(len(results))
+	sum.TestName = results[0].TestName
+	sum.Bandwidth = sum.Bytes / durations
+	return sum
 }

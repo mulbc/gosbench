@@ -2,7 +2,9 @@ package main
 
 import (
 	"contrib.go.opencensus.io/exporter/prometheus"
+	"github.com/mulbc/gosbench/common"
 	prom "github.com/prometheus/client_golang/prometheus"
+	promModel "github.com/prometheus/client_model/go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -87,4 +89,49 @@ func init() {
 	if err = promRegistry.Register(promDownloadedBytes); err != nil {
 		log.WithError(err).Error("Issues when adding downloaded_bytes gauge to Prometheus registry")
 	}
+}
+
+func getCurrentPromValues(testName string) common.BenchmarkResult {
+	benchResult := common.BenchmarkResult{
+		TestName: testName,
+	}
+	result, err := promRegistry.Gather()
+	if err != nil {
+		log.WithError(err).Error("ERROR during PROM VALUE gathering")
+	}
+	resultmap := map[string][]*promModel.Metric{}
+	for _, metric := range result {
+		resultmap[*metric.Name] = metric.Metric
+	}
+	benchResult.Operations = sumCounterForTest(resultmap["gosbench_finished_ops"], testName)
+	benchResult.Bytes = sumCounterForTest(resultmap["gosbench_uploaded_bytes"], testName) + sumCounterForTest(resultmap["gosbench_downloaded_bytes"], testName)
+	benchResult.LatencyAvg = averageHistogramForTest(resultmap["gosbench_ops_latency"], testName)
+	log.Infof("PROM VALUES %+v", benchResult)
+	return benchResult
+}
+
+func sumCounterForTest(metrics []*promModel.Metric, testName string) float64 {
+	sum := float64(0)
+	for _, metric := range metrics {
+		for _, label := range metric.Label {
+			if *label.Name == "testName" && *label.Value == testName {
+				sum += *metric.Counter.Value
+			}
+		}
+	}
+	return sum
+}
+
+func averageHistogramForTest(metrics []*promModel.Metric, testName string) float64 {
+	sum := float64(0)
+	count := float64(0)
+	for _, metric := range metrics {
+		for _, label := range metric.Label {
+			if *label.Name == "testName" && *label.Value == testName {
+				sum += *metric.Histogram.SampleSum
+				count += float64(*metric.Histogram.SampleCount)
+			}
+		}
+	}
+	return sum / count
 }

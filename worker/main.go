@@ -100,8 +100,11 @@ func connectToServer(serverAddress string) error {
 				return nil
 			}
 			log.Info("Starting to work")
-			PerfTest(config.Test, Workqueue, config.WorkerID)
-			_ = encoder.Encode(common.WorkerMessage{Message: "work done"})
+			duration := PerfTest(config.Test, Workqueue, config.WorkerID)
+			benchResults := getCurrentPromValues(config.Test.Name)
+			benchResults.Duration = duration
+			benchResults.Bandwidth = benchResults.Bytes / duration.Seconds()
+			_ = encoder.Encode(common.WorkerMessage{Message: "work done", BenchResult: benchResults})
 			// Work is done - return to being a ready worker by reconnecting
 			return nil
 		case "shutdown":
@@ -112,11 +115,12 @@ func connectToServer(serverAddress string) error {
 }
 
 // PerfTest runs a performance test as configured in testConfig
-func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, workerID string) {
+func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, workerID string) time.Duration {
 	workChannel := make(chan WorkItem, len(*Workqueue.Queue))
 	doneChannel := make(chan bool)
 
-	promTestStart.WithLabelValues(testConfig.Name).Set(float64(time.Now().UTC().UnixNano() / int64(1000000)))
+	startTime := time.Now().UTC()
+	promTestStart.WithLabelValues(testConfig.Name).Set(float64(startTime.UnixNano() / int64(1000000)))
 	// promTestGauge.WithLabelValues(testConfig.Name).Inc()
 	for worker := 0; worker < testConfig.ParallelClients; worker++ {
 		go DoWork(workChannel, doneChannel)
@@ -132,7 +136,8 @@ func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, wo
 		<-doneChannel
 	}
 	log.Info("All clients finished")
-	promTestEnd.WithLabelValues(testConfig.Name).Set(float64(time.Now().UTC().UnixNano() / int64(1000000)))
+	endTime := time.Now().UTC()
+	promTestEnd.WithLabelValues(testConfig.Name).Set(float64(endTime.UnixNano() / int64(1000000)))
 
 	if testConfig.CleanAfter {
 		log.Info("Housekeeping started")
@@ -152,6 +157,7 @@ func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, wo
 	}
 	// Sleep to ensure Prometheus can still scrape the last information before we restart the worker
 	time.Sleep(10 * time.Second)
+	return endTime.Sub(startTime)
 }
 
 func workUntilTimeout(Workqueue *Workqueue, workChannel chan WorkItem, runtime time.Duration) {
