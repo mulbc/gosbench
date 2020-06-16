@@ -24,8 +24,8 @@ data:
       - name: EverythingWorks
         read_weight: 20
         write_weight: 80
-        delete_weight: 0
-        list_weight: 0
+        delete_weight: 30
+        list_weight: 10
         objects:
           size_min: 5
           size_max: 100
@@ -59,12 +59,12 @@ data:
         # Number of requests processed in parallel by each worker
         parallel_clients: 3
         # Remove all generated buckets and its content after run
-        clean_after: True
+        clean_after: False
       - name: EverythingWorksAgain
-        read_weight: 20
-        write_weight: 80
-        delete_weight: 0
-        list_weight: 0
+        read_weight: 10
+        write_weight: 40
+        delete_weight: 80
+        list_weight: 10
         objects:
           size_min: 5
           size_max: 100
@@ -98,7 +98,7 @@ data:
         # Number of requests processed in parallel by each worker
         parallel_clients: 3
         # Remove all generated buckets and its content after run
-        clean_after: True
+        clean_after: False
 metadata:
   name: gosbench-config
   labels:
@@ -109,16 +109,20 @@ kind: Deployment
 metadata:
   name: gosbench-server
   labels:
-    app: gosbench
+    app: gosbench-server
+    stack: gosbench
+    type: server
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gosbench
+      app: gosbench-server
   template:
     metadata:
       labels:
-        app: gosbench
+        app: gosbench-server
+        stack: gosbench
+        type: server
     spec:
       containers:
         - name: server
@@ -140,14 +144,14 @@ kind: Service
 metadata:
   name: gosbench-server
   labels:
-    app: gosbench
+    app: gosbench-server
 spec:
   type: NodePort
   ports:
     - port: 2000
       targetPort: 2000
   selector:
-    app: gosbench
+    app: gosbench-server
 {% for worker in range(NUMWORKERS | int) %}
 ---
 apiVersion: batch/v1
@@ -156,12 +160,28 @@ metadata:
   name: gosbench-worker{{ worker+1 }}
   labels:
     app: gosbench-worker{{ worker+1 }}
+    stack: gosbench
+    type: worker
 spec:
   template:
     metadata:
       labels:
-        app: gosbench
+        app: gosbench-worker
+        stack: gosbench
+        type: worker
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 10
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: type
+                  operator: In
+                  values:
+                  - worker
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: gosbench-worker
           image: quay.io/mulbc/gosbench-worker

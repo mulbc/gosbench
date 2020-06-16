@@ -107,12 +107,28 @@ metadata:
   name: gosbench-worker1
   labels:
     app: gosbench-worker1
+    stack: gosbench
+    type: worker
 spec:
   template:
     metadata:
       labels:
-        app: gosbench
+        app: gosbench-worker
+        stack: gosbench
+        type: worker
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 10
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: type
+                  operator: In
+                  values:
+                  - worker
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: gosbench-worker
           image: quay.io/mulbc/gosbench-worker
@@ -128,12 +144,28 @@ metadata:
   name: gosbench-worker2
   labels:
     app: gosbench-worker2
+    stack: gosbench
+    type: worker
 spec:
   template:
     metadata:
       labels:
-        app: gosbench
+        app: gosbench-worker
+        stack: gosbench
+        type: worker
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 10
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: type
+                  operator: In
+                  values:
+                  - worker
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: gosbench-worker
           image: quay.io/mulbc/gosbench-worker
@@ -148,16 +180,20 @@ kind: Deployment
 metadata:
   name: gosbench-server
   labels:
-    app: gosbench
+    app: gosbench-server
+    stack: gosbench
+    type: server
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gosbench
+      app: gosbench-server
   template:
     metadata:
       labels:
-        app: gosbench
+        app: gosbench-server
+        stack: gosbench
+        type: server
     spec:
       containers:
         - name: server
@@ -179,14 +215,14 @@ kind: Service
 metadata:
   name: gosbench-server
   labels:
-    app: gosbench
+    app: gosbench-server
 spec:
   type: NodePort
   ports:
     - port: 2000
       targetPort: 2000
   selector:
-    app: gosbench
+    app: gosbench-server
 ---
 apiVersion: v1
 kind: Service
