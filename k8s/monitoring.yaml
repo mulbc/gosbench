@@ -295,7 +295,7 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 1,
-      "iteration": 1592245931516,
+      "iteration": 1592382373850,
       "links": [
         {
           "asDropdown": true,
@@ -371,6 +371,12 @@ data:
               "$$hashKey": "object:1927",
               "alias": "/SUM/",
               "yaxis": 2
+            },
+            {
+              "$$hashKey": "object:116",
+              "alias": "/FAILED/",
+              "color": "#C4162A",
+              "linewidth": 3
             }
           ],
           "spaceLength": 10,
@@ -389,6 +395,12 @@ data:
               "interval": "",
               "legendFormat": "SUM {{testName}}",
               "refId": "B"
+            },
+            {
+              "expr": "sum by (method,testName) (irate(gosbench_failed_ops[2s]))",
+              "interval": "",
+              "legendFormat": "FAILED {{ testName }} {{ method }}",
+              "refId": "C"
             }
           ],
           "thresholds": [],
@@ -430,7 +442,7 @@ data:
             }
           ],
           "yaxis": {
-            "align": false,
+            "align": true,
             "alignLevel": null
           }
         },
@@ -1993,7 +2005,7 @@ data:
           }
         }
       ],
-      "refresh": false,
+      "refresh": "5s",
       "schemaVersion": 25,
       "style": "dark",
       "tags": [
@@ -2079,8 +2091,8 @@ data:
         ]
       },
       "time": {
-        "from": "2020-06-15T18:58:39.079Z",
-        "to": "2020-06-15T19:00:05.381Z"
+        "from": "now-15m",
+        "to": "now"
       },
       "timepicker": {
         "refresh_intervals": [
