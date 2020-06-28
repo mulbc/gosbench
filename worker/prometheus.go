@@ -106,7 +106,6 @@ func getCurrentPromValues(testName string) common.BenchmarkResult {
 	benchResult.Operations = sumCounterForTest(resultmap["gosbench_finished_ops"], testName)
 	benchResult.Bytes = sumCounterForTest(resultmap["gosbench_uploaded_bytes"], testName) + sumCounterForTest(resultmap["gosbench_downloaded_bytes"], testName)
 	benchResult.LatencyAvg = averageHistogramForTest(resultmap["gosbench_ops_latency"], testName)
-	log.Infof("PROM VALUES %+v", benchResult)
 	return benchResult
 }
 

@@ -104,6 +104,7 @@ func connectToServer(serverAddress string) error {
 			benchResults := getCurrentPromValues(config.Test.Name)
 			benchResults.Duration = duration
 			benchResults.Bandwidth = benchResults.Bytes / duration.Seconds()
+			log.Infof("PROM VALUES %+v", benchResults)
 			_ = encoder.Encode(common.WorkerMessage{Message: "work done", BenchResult: benchResults})
 			// Work is done - return to being a ready worker by reconnecting
 			return nil
