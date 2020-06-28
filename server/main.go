@@ -190,16 +190,16 @@ func shutdownWorker(conn *net.Conn) {
 
 func sumBenchmarkResults(results []common.BenchmarkResult) common.BenchmarkResult {
 	sum := common.BenchmarkResult{}
-	durations := float64(0)
+	bandwidthAverages := float64(0)
 	latencyAverages := float64(0)
 	for _, result := range results {
 		sum.Bytes += result.Bytes
 		sum.Operations += result.Operations
 		latencyAverages += result.LatencyAvg
-		durations += result.Duration.Seconds()
+		bandwidthAverages += result.Bandwidth
 	}
 	sum.LatencyAvg = latencyAverages / float64(len(results))
 	sum.TestName = results[0].TestName
-	sum.Bandwidth = sum.Bytes / durations
+	sum.Bandwidth = bandwidthAverages
 	return sum
 }
