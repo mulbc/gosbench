@@ -1,12 +1,15 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net"
+	"os"
 	"time"
 
 	"github.com/mulbc/gosbench/common"
@@ -152,6 +155,7 @@ func scheduleTests(config common.Testconf) {
 			WithField("Average latency in ms", benchResult.LatencyAvg).
 			WithField("Test runtime on server", benchResult.Duration).
 			Infof("PERF RESULTS")
+		writeResultToCSV(benchResult)
 	}
 	log.Info("All performance tests finished")
 	for {
@@ -208,4 +212,69 @@ func sumBenchmarkResults(results []common.BenchmarkResult) common.BenchmarkResul
 	sum.TestName = results[0].TestName
 	sum.Bandwidth = bandwidthAverages
 	return sum
+}
+
+func writeResultToCSV(benchResult common.BenchmarkResult) {
+	file, created, err := getCSVFileHandle()
+	if err != nil {
+		log.WithError(err).Error("Could not get a file handle for the CSV results")
+		return
+	}
+	defer file.Close()
+
+	csvwriter := csv.NewWriter(file)
+
+	if created {
+		err = csvwriter.Write([]string{
+			"testName",
+			"Total Operations",
+			"Total Bytes",
+			"Average Bandwidth in Bytes/s",
+			"Average Latency in ms",
+			"Test duration seen by server in seconds",
+		})
+		if err != nil {
+			log.WithError(err).Error("Failed writing line to results csv")
+			return
+		}
+	}
+
+	err = csvwriter.Write([]string{
+		benchResult.TestName,
+		fmt.Sprintf("%.0f", benchResult.Operations),
+		fmt.Sprintf("%.0f", benchResult.Bytes),
+		fmt.Sprintf("%f", benchResult.Bandwidth),
+		fmt.Sprintf("%f", benchResult.LatencyAvg),
+		fmt.Sprintf("%f", benchResult.Duration.Seconds()),
+	})
+	if err != nil {
+		log.WithError(err).Error("Failed writing line to results csv")
+		return
+	}
+
+	csvwriter.Flush()
+
+}
+
+func getCSVFileHandle() (*os.File, bool, error) {
+	file, err := os.OpenFile("gosbench_results.csv", os.O_APPEND|os.O_WRONLY, 0755)
+	if err == nil {
+		return file, false, nil
+	}
+	file, err = os.OpenFile("/tmp/gosbench_results.csv", os.O_APPEND|os.O_WRONLY, 0755)
+	if err == nil {
+		return file, false, nil
+	}
+
+	file, err = os.OpenFile("gosbench_results.csv", os.O_WRONLY|os.O_CREATE, 0755)
+	if err == nil {
+		return file, true, nil
+	}
+	file, err = os.OpenFile("/tmp/gosbench_results.csv", os.O_WRONLY|os.O_CREATE, 0755)
+	if err == nil {
+		return file, true, nil
+	}
+
+	return nil, false, errors.New("Could not find previous CSV for appending and could not write new CSV file to current dir and /tmp/ giving up")
+
 }
