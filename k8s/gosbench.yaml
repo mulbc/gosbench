@@ -100,6 +100,7 @@ metadata:
   name: gosbench-config
   labels:
     app: gosbench-monitoring
+    stack: gosbench
 ---
 apiVersion: batch/v1
 kind: Job
@@ -170,7 +171,7 @@ spec:
         - name: gosbench-worker
           image: quay.io/mulbc/gosbench-worker:latest
           imagePullPolicy: Always
-          command: ['./main', '-d', '-s', 'gosbench-server:2000']
+          command: ['./main', '-s', 'gosbench-server:2000']
           ports:
             - containerPort: 8888
       restartPolicy: Never
@@ -216,6 +217,7 @@ metadata:
   name: gosbench-server
   labels:
     app: gosbench-server
+    stack: gosbench
 spec:
   type: NodePort
   ports:
@@ -230,6 +232,7 @@ metadata:
   name: gosbench-worker1
   labels:
     app: gosbench-worker1
+    stack: gosbench
 spec:
   type: NodePort
   ports:
@@ -244,6 +247,7 @@ metadata:
   name: gosbench-worker2
   labels:
     app: gosbench-worker2
+    stack: gosbench
 spec:
   type: NodePort
   ports:
