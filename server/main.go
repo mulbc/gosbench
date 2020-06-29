@@ -145,7 +145,13 @@ func scheduleTests(config common.Testconf) {
 		log.WithField("test", test.Name).Infof("GRAFANA: ?from=%d&to=%d", startTime.UnixNano()/int64(1000000), stopTime.UnixNano()/int64(1000000))
 		benchResult := sumBenchmarkResults(benchResults)
 		benchResult.Duration = stopTime.Sub(startTime)
-		log.WithField("test", test.Name).Infof("PERF RESULTS: %+v", benchResult)
+		log.WithField("test", test.Name).
+			WithField("Total Operations", benchResult.Operations).
+			WithField("Total Bytes", benchResult.Bytes).
+			WithField("Average BW in Byte/s", benchResult.Bandwidth).
+			WithField("Average latency in ms", benchResult.LatencyAvg).
+			WithField("Test runtime on server", benchResult.Duration).
+			Infof("PERF RESULTS")
 	}
 	log.Info("All performance tests finished")
 	for {
