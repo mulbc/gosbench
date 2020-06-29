@@ -33,7 +33,7 @@ builds:
     - CGO_ENABLED=0
 
 dockers:
-  - 
+  -
 archives:
 - replacements:
     darwin: macOS
