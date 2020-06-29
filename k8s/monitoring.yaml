@@ -295,7 +295,7 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 1,
-      "iteration": 1592382373850,
+      "iteration": 1593425852501,
       "links": [
         {
           "asDropdown": true,
@@ -447,21 +447,27 @@ data:
           }
         },
         {
-          "aliasColors": {},
+          "aliasColors": {
+            "99% Quantile EverythingWorks": "green",
+            "99% Quantile EverythingWorksAgain": "blue",
+            "T 99% Quantile EverythingWorks": "red",
+            "T 99% Quantile EverythingWorksAgain": "purple"
+          },
           "bars": false,
           "dashLength": 10,
           "dashes": false,
           "datasource": "Prometheus",
+          "decimals": 2,
           "fieldConfig": {
             "defaults": {
               "custom": {}
             },
             "overrides": []
           },
-          "fill": 1,
+          "fill": 0,
           "fillGradient": 0,
           "gridPos": {
-            "h": 9,
+            "h": 12,
             "w": 12,
             "x": 12,
             "y": 1
@@ -470,6 +476,7 @@ data:
           "id": 33,
           "interval": "2s",
           "legend": {
+            "alignAsTable": true,
             "avg": true,
             "current": false,
             "max": true,
@@ -479,7 +486,7 @@ data:
             "values": true
           },
           "lines": true,
-          "linewidth": 1,
+          "linewidth": 2,
           "links": [],
           "nullPointMode": "null",
           "options": {
@@ -489,25 +496,81 @@ data:
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
-          "seriesOverrides": [],
+          "seriesOverrides": [
+            {
+              "$$hashKey": "object:111",
+              "alias": "/99%/",
+              "color": "#37872D"
+            },
+            {
+              "$$hashKey": "object:116",
+              "alias": "/95%/",
+              "color": "#56A64B"
+            },
+            {
+              "$$hashKey": "object:121",
+              "alias": "/90%/",
+              "color": "#96D98D"
+            },
+            {
+              "$$hashKey": "object:126",
+              "alias": "/50%/",
+              "color": "#3274D9"
+            },
+            {
+              "$$hashKey": "object:131",
+              "alias": "/average/",
+              "color": "#FF780A",
+              "linewidth": 3,
+              "yaxis": 2
+            }
+          ],
           "spaceLength": 10,
           "stack": false,
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(gosbench_ops_latency_sum[2s]))",
+              "expr": "sum (gosbench_ops_latency_sum) by (testName) / sum (gosbench_ops_latency_count) by (testName)",
               "format": "time_series",
+              "hide": false,
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "latency",
+              "legendFormat": "average {{ testName }}",
               "refId": "A"
+            },
+            {
+              "expr": "histogram_quantile(0.99, sum(gosbench_ops_latency_bucket) by (le,testName))",
+              "interval": "",
+              "legendFormat": "99% Quantile {{ testName }}",
+              "refId": "B"
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum(gosbench_ops_latency_bucket) by (le,testName))",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "95% Quantile {{ testName }}",
+              "refId": "C"
+            },
+            {
+              "expr": "histogram_quantile(0.90, sum(gosbench_ops_latency_bucket) by (le,testName))",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "90% Quantile {{ testName }}",
+              "refId": "D"
+            },
+            {
+              "expr": "histogram_quantile(0.50, sum(gosbench_ops_latency_bucket) by (le,testName))",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "50% Quantile {{ testName }}",
+              "refId": "E"
             }
           ],
           "thresholds": [],
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "S3 latency",
+          "title": "S3 latency quantiles and averages",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -524,7 +587,8 @@ data:
           "yaxes": [
             {
               "$$hashKey": "object:1349",
-              "format": "µs",
+              "decimals": null,
+              "format": "ms",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -533,7 +597,7 @@ data:
             },
             {
               "$$hashKey": "object:1350",
-              "format": "short",
+              "format": "ms",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -543,77 +607,8 @@ data:
           ],
           "yaxis": {
             "align": false,
-            "alignLevel": null
+            "alignLevel": 0
           }
-        },
-        {
-          "cards": {
-            "cardPadding": null,
-            "cardRound": null
-          },
-          "color": {
-            "cardColor": "#b4ff00",
-            "colorScale": "sqrt",
-            "colorScheme": "interpolateBlues",
-            "exponent": 0.5,
-            "mode": "spectrum"
-          },
-          "dataFormat": "timeseries",
-          "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 10
-          },
-          "heatmap": {},
-          "hideZeroBuckets": false,
-          "highlightCards": true,
-          "id": 35,
-          "interval": "2s",
-          "legend": {
-            "show": false
-          },
-          "reverseYBuckets": false,
-          "targets": [
-            {
-              "expr": "histogram_quantile(0.95, sum(rate(gosbench_ops_latency_bucket[5m])) by (le))",
-              "interval": "",
-              "legendFormat": "",
-              "refId": "A"
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "95% S3 latency quantile",
-          "tooltip": {
-            "show": true,
-            "showHistogram": false
-          },
-          "type": "heatmap",
-          "xAxis": {
-            "show": true
-          },
-          "xBucketNumber": null,
-          "xBucketSize": null,
-          "yAxis": {
-            "decimals": null,
-            "format": "ms",
-            "logBase": 1,
-            "max": null,
-            "min": null,
-            "show": true,
-            "splitFactor": null
-          },
-          "yBucketBound": "auto",
-          "yBucketNumber": null,
-          "yBucketSize": null
         },
         {
           "aliasColors": {},
@@ -741,6 +736,76 @@ data:
             "align": true,
             "alignLevel": null
           }
+        },
+        {
+          "cards": {
+            "cardPadding": null,
+            "cardRound": null
+          },
+          "color": {
+            "cardColor": "#b4ff00",
+            "colorScale": "sqrt",
+            "colorScheme": "interpolateSpectral",
+            "exponent": 0.5,
+            "mode": "spectrum"
+          },
+          "dataFormat": "tsbuckets",
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 12,
+            "x": 12,
+            "y": 13
+          },
+          "heatmap": {},
+          "hideZeroBuckets": true,
+          "highlightCards": true,
+          "id": 35,
+          "interval": "2s",
+          "legend": {
+            "show": false
+          },
+          "maxDataPoints": 50,
+          "reverseYBuckets": false,
+          "targets": [
+            {
+              "expr": "sum(rate(gosbench_ops_latency_bucket[$__interval])) by (le)",
+              "interval": "",
+              "legendFormat": "{{le}}",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "S3 latency heatmap",
+          "tooltip": {
+            "show": true,
+            "showHistogram": false
+          },
+          "type": "heatmap",
+          "xAxis": {
+            "show": true
+          },
+          "xBucketNumber": null,
+          "xBucketSize": null,
+          "yAxis": {
+            "decimals": null,
+            "format": "ms",
+            "logBase": 1,
+            "max": null,
+            "min": null,
+            "show": true,
+            "splitFactor": null
+          },
+          "yBucketBound": "auto",
+          "yBucketNumber": null,
+          "yBucketSize": null
         },
         {
           "collapsed": true,
@@ -1709,6 +1774,7 @@ data:
           "renderer": "flot",
           "seriesOverrides": [
             {
+              "$$hashKey": "object:822",
               "alias": "SUM",
               "yaxis": 2
             }
@@ -1718,7 +1784,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(gosbench_opencensus_io_http_client_completed_count[2s])) by (instance)",
+              "expr": "sum(irate(gosbench_opencensus_io_http_client_completed_count[$__interval])) by (instance)",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
@@ -1726,7 +1792,7 @@ data:
               "refId": "A"
             },
             {
-              "expr": "sum(irate(gosbench_opencensus_io_http_client_completed_count[2s]))",
+              "expr": "sum(irate(gosbench_opencensus_io_http_client_completed_count[$__interval]))",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
@@ -1955,10 +2021,17 @@ data:
             {
               "expr": "sum(irate(gosbench_opencensus_io_http_client_roundtrip_latency_sum[2s]))",
               "format": "time_series",
+              "hide": true,
               "interval": "",
               "intervalFactor": 1,
               "legendFormat": "latency",
               "refId": "A"
+            },
+            {
+              "expr": "sum (gosbench_opencensus_io_http_client_roundtrip_latency_sum) / sum (gosbench_opencensus_io_http_client_roundtrip_latency_count)",
+              "interval": "",
+              "legendFormat": "",
+              "refId": "B"
             }
           ],
           "thresholds": [],
@@ -1982,7 +2055,7 @@ data:
           "yaxes": [
             {
               "$$hashKey": "object:1349",
-              "format": "µs",
+              "format": "ms",
               "label": null,
               "logBase": 1,
               "max": null,
