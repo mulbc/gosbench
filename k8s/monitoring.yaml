@@ -161,7 +161,7 @@ spec:
             - containerPort: 9090
           volumeMounts:
             - name: prom-data
-              mountPath: /data
+              mountPath: /prometheus
             - name: prom-config
               mountPath: /etc/prometheus
         - name: grafana
