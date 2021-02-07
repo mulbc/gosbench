@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+  "io/ioutil"
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -105,7 +106,15 @@ func putObject(service *s3.S3, objectName string, objectContent io.ReadSeeker, b
 		Body:   objectContent,
 	}, func(d *s3manager.Uploader) {
 		d.MaxUploadParts = 1
+    d.Concurrency = 20
 	})
+  
+  //_, err := svc.PutObjectWithContext(ctx, &s3.PutObjectInput{
+  //  Bucket: &bucket,
+  //  Key: &objectName,
+  //  Body: objectContent,
+  //})
+
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == request.CanceledErrorCode {
 			// If the SDK can determine the request or retry delay was canceled
@@ -159,16 +168,31 @@ func listObjects(service *s3.S3, prefix string, bucket string) (*s3.ListObjectsO
 	return result, err
 }
 
-func getObject(service *s3.S3, objectName string, bucket string) error {
+func getObject(service *s3.S3, objectName string, bucket string, objectSize uint64) error {
 	// Create a downloader with the session and custom options
-	downloader := s3manager.NewDownloaderWithClient(service)
-	buf := aws.NewWriteAtBuffer([]byte{})
-	_, err := downloader.DownloadWithContext(ctx, buf, &s3.GetObjectInput{
-		Bucket: &bucket,
-		Key:    &objectName,
-	}, func(d *s3manager.Downloader) {
-		d.PartSize = 64 * 1024 * 1024 // 64MB parts
-	})
+	//downloader := s3manager.NewDownloaderWithClient(service)
+  //buf := aws.NewWriteAtBuffer([]byte{})
+	//_, err := downloader.DownloadWithContext(ctx, buf, &s3.GetObjectInput{
+	//	Bucket: &bucket,
+	//	Key:    &objectName,
+	//}, func(d *s3manager.Downloader) {
+  //  d.PartSize = 64 * 1024 * 1024 // 64MB parts
+	//})
+
+  // Remove the allocation of buffer
+  result, err := svc.GetObjectWithContext(ctx, &s3.GetObjectInput{
+    Bucket: &bucket,
+    Key: &objectName,
+  })
+  ////log.Debug("read op: content length: ", output.ContentLength)
+  //log.Debug("read op: content length: ", len(output.Body))
+  numBytes := int64(0)
+  if err == nil {
+    numBytes, err = io.Copy(ioutil.Discard, result.Body)
+  }
+  if numBytes != int64(objectSize) {
+    log.Debug("expected object length is not matched to actual object length ", numBytes)
+  }
 	return err
 }
 

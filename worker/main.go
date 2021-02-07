@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"time"
+  "runtime"
 
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/mulbc/gosbench/common"
@@ -28,6 +29,8 @@ func init() {
 }
 
 func main() {
+  runtime.GOMAXPROCS(runtime.NumCPU())
+  log.Info("v0.1")
 	var serverAddress string
 	flag.StringVar(&serverAddress, "s", "", "Gosbench Server IP and Port in the form '192.168.1.1:2000'")
 	flag.IntVar(&prometheusPort, "p", 8888, "Port on which the Prometheus Exporter will be available. Default: 8888")
