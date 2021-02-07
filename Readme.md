@@ -108,8 +108,8 @@ This will cause each workers to search for pre-existing files in the buckets `my
 
 ## Cosbench vs Gosbench benchmark comparision
 When a new tool is presented, it’s essential to compare it to existing tools for accuracy. For this reason, we ran a comparision between Cosbench and Gosbench. Both benchmarks were tasked to do a 100% write test and 100% read test on 4KB, 16KB, 256KB, 1MB, 4MB objects for 60 seconds each. The tests were to run on one RGW in the test configuration in parallel. Figure below show writing and reading, respectively. From these charts, it’s apparent that the performance metrics for all objects are similar for both tools. 
-![Latency](example/Latency.png)
-![Bendwidth](example/Bendwidth.png)
+![Latency](examples/Latency.png)
+![Bendwidth](examples/Bendwidth.png)
 
 ## Contributing
 
