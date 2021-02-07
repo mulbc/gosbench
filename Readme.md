@@ -107,7 +107,7 @@ Note: Due to the constant distribution, we will only consider the `_min` values.
 This will cause each workers to search for pre-existing files in the buckets `myBucket-0` and `myBucket-1` and read 10 objects from these buckets. If there are less than 10 objects in any of these buckets, some objects will be read multiple times. The object size given in your config will be ignored when reading pre-existing files.
 
 ## Cosbench vs Gosbench benchmark comparision
-When a new tool is presented, it’s essential to compare it to existing tools for accuracy. For this reason, we ran a comparision between Cosbench and Gosbench. Both benchmarks were tasked to do a 100% write test and 100% read test on 4KB, 16KB, 256KB, 1MB, 4MB objects for 60 seconds each. The tests were to run on one RGW in the test configuration in parallel. Figure below show writing and reading, respectively. From these charts, it’s apparent that the performance metrics for all objects are similar for both tools. 
+When a new tool is presented, it’s essential to compare it to existing tools for accuracy. For this reason, we ran a comparision between Cosbench and Gosbench. Both benchmarks were tasked to do a 100% write test and 100% read test on 4KB, 16KB, 256KB, 1MB, 4MB objects for 60 seconds each. The tests were to run on one RGW using S3 protocol in ceph storage clusteri, also run in the test configuration in parallel. Figure below show writing and reading, respectively. From these charts, it’s apparent that the performance metrics for all objects are similar for both tools. 
 
 ![Latency](examples/Latency.png)
 
