@@ -10,10 +10,11 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/mulbc/gosbench/common"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -49,10 +50,22 @@ var debug, trace bool
 
 func loadConfigFromFile(configFileContent []byte) common.Testconf {
 	var config common.Testconf
-	err := yaml.Unmarshal(configFileContent, &config)
-	if err != nil {
-		log.WithError(err).Fatalf("Error unmarshaling config file:")
+	var err error
+
+	if strings.HasSuffix(configFileLocation, ".yaml") || strings.HasSuffix(configFileLocation, ".yml") {
+		err = yaml.Unmarshal(configFileContent, &config)
+		if err != nil {
+			log.WithError(err).Fatalf("Error unmarshaling yaml config file:")
+		}
+	} else if strings.HasSuffix(configFileLocation, ".json") {
+		err = json.Unmarshal(configFileContent, &config)
+		if err != nil {
+			log.WithError(err).Fatalf("Error unmarshaling json config file:")
+		}
+	} else {
+		log.WithError(err).Fatalf("Configuration file must be a yaml or json formatted file")
 	}
+
 	return config
 }
 

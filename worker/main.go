@@ -128,7 +128,7 @@ func PerfTest(testConfig *common.TestCaseConfiguration, Workqueue *Workqueue, wo
 	}
 	log.Infof("Started %d parallel clients", testConfig.ParallelClients)
 	if testConfig.Runtime != 0 {
-		workUntilTimeout(Workqueue, workChannel, testConfig.Runtime)
+		workUntilTimeout(Workqueue, workChannel, time.Duration(testConfig.Runtime))
 	} else {
 		workUntilOps(Workqueue, workChannel, testConfig.OpsDeadline, testConfig.ParallelClients)
 	}

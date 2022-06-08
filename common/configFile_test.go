@@ -15,135 +15,135 @@ func Test_checkTestCase(t *testing.T) {
 		wantErr bool
 	}{
 		{"No end defined", args{new(TestCaseConfiguration)}, true},
-		{"No weights defined", args{&TestCaseConfiguration{Runtime: time.Second, OpsDeadline: 10}}, true},
-		{"No Bucket Numbers defined", args{&TestCaseConfiguration{Runtime: time.Second, OpsDeadline: 10, ReadWeight: 1}}, true},
-		{"No Object size min defined", args{&TestCaseConfiguration{Runtime: time.Second, OpsDeadline: 10, ReadWeight: 1,
+		{"No weights defined", args{&TestCaseConfiguration{Runtime: Duration(time.Second), OpsDeadline: 10}}, true},
+		{"No Bucket Numbers defined", args{&TestCaseConfiguration{Runtime: Duration(time.Second), OpsDeadline: 10, ReadWeight: 1}}, true},
+		{"No Object size min defined", args{&TestCaseConfiguration{Runtime: Duration(time.Second), OpsDeadline: 10, ReadWeight: 1,
 			Buckets: struct {
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
 			}{
 				NumberMin: 1,
 			}}}, true},
-		{"No Object size max defined", args{&TestCaseConfiguration{Runtime: time.Second, OpsDeadline: 10, ReadWeight: 1,
+		{"No Object size max defined", args{&TestCaseConfiguration{Runtime: Duration(time.Second), OpsDeadline: 10, ReadWeight: 1,
 			Buckets: struct {
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
 			}{
 				NumberMin: 1,
 			},
 			Objects: struct {
-				SizeMin            uint64 `yaml:"size_min"`
-				SizeMax            uint64 `yaml:"size_max"`
-				PartSize           uint64 `yaml:"part_size"`
+				SizeMin            uint64 `yaml:"size_min" json:"size_min"`
+				SizeMax            uint64 `yaml:"size_max" json:"size_max"`
+				PartSize           uint64 `yaml:"part_size" json:"part_size"`
 				SizeLast           uint64
-				SizeDistribution   string `yaml:"size_distribution"`
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				SizeDistribution   string `yaml:"size_distribution" json:"size_distribution"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
-				Unit               string `yaml:"unit"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
+				Unit               string `yaml:"unit" json:"unit"`
 			}{
 				SizeMin: 1,
 			}}}, true},
-		{"No Object number min defined", args{&TestCaseConfiguration{Runtime: time.Second, OpsDeadline: 10, ReadWeight: 1,
+		{"No Object number min defined", args{&TestCaseConfiguration{Runtime: Duration(time.Second), OpsDeadline: 10, ReadWeight: 1,
 			Buckets: struct {
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
 			}{
 				NumberMin: 1,
 			},
 			Objects: struct {
-				SizeMin            uint64 `yaml:"size_min"`
-				SizeMax            uint64 `yaml:"size_max"`
-				PartSize           uint64 `yaml:"part_size"`
+				SizeMin            uint64 `yaml:"size_min" json:"size_min"`
+				SizeMax            uint64 `yaml:"size_max" json:"size_max"`
+				PartSize           uint64 `yaml:"part_size" json:"part_size"`
 				SizeLast           uint64
-				SizeDistribution   string `yaml:"size_distribution"`
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				SizeDistribution   string `yaml:"size_distribution" json:"size_distribution"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
-				Unit               string `yaml:"unit"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
+				Unit               string `yaml:"unit" json:"unit"`
 			}{
 				SizeMin: 1,
 				SizeMax: 2,
 			}}}, true},
-		{"No Object size distributions defined", args{&TestCaseConfiguration{Runtime: time.Second, OpsDeadline: 10, ReadWeight: 1,
+		{"No Object size distributions defined", args{&TestCaseConfiguration{Runtime: Duration(time.Second), OpsDeadline: 10, ReadWeight: 1,
 			Buckets: struct {
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
 			}{
 				NumberMin: 1,
 			},
 			Objects: struct {
-				SizeMin            uint64 `yaml:"size_min"`
-				SizeMax            uint64 `yaml:"size_max"`
-				PartSize           uint64 `yaml:"part_size"`
+				SizeMin            uint64 `yaml:"size_min" json:"size_min"`
+				SizeMax            uint64 `yaml:"size_max" json:"size_max"`
+				PartSize           uint64 `yaml:"part_size" json:"part_size"`
 				SizeLast           uint64
-				SizeDistribution   string `yaml:"size_distribution"`
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				SizeDistribution   string `yaml:"size_distribution" json:"size_distribution"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
-				Unit               string `yaml:"unit"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
+				Unit               string `yaml:"unit" json:"unit"`
 			}{
 				SizeMin:   1,
 				SizeMax:   2,
 				NumberMin: 3,
 			}}}, true},
-		{"No Object number distributions defined", args{&TestCaseConfiguration{Runtime: time.Second, OpsDeadline: 10, ReadWeight: 1,
+		{"No Object number distributions defined", args{&TestCaseConfiguration{Runtime: Duration(time.Second), OpsDeadline: 10, ReadWeight: 1,
 			Buckets: struct {
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
 			}{
 				NumberMin: 1,
 			},
 			Objects: struct {
-				SizeMin            uint64 `yaml:"size_min"`
-				SizeMax            uint64 `yaml:"size_max"`
-				PartSize           uint64 `yaml:"part_size"`
+				SizeMin            uint64 `yaml:"size_min" json:"size_min"`
+				SizeMax            uint64 `yaml:"size_max" json:"size_max"`
+				PartSize           uint64 `yaml:"part_size" json:"part_size"`
 				SizeLast           uint64
-				SizeDistribution   string `yaml:"size_distribution"`
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				SizeDistribution   string `yaml:"size_distribution" json:"size_distribution"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
-				Unit               string `yaml:"unit"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
+				Unit               string `yaml:"unit" json:"unit"`
 			}{
 				SizeMin:          1,
 				SizeMax:          2,
 				NumberMin:        3,
 				SizeDistribution: "constant",
 			}}}, true},
-		{"No Bucket distribution defined", args{&TestCaseConfiguration{Runtime: time.Second, OpsDeadline: 10, ReadWeight: 1,
+		{"No Bucket distribution defined", args{&TestCaseConfiguration{Runtime: Duration(time.Second), OpsDeadline: 10, ReadWeight: 1,
 			Buckets: struct {
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
 			}{
 				NumberMin: 1,
 			},
 			Objects: struct {
-				SizeMin            uint64 `yaml:"size_min"`
-				SizeMax            uint64 `yaml:"size_max"`
-				PartSize           uint64 `yaml:"part_size"`
+				SizeMin            uint64 `yaml:"size_min" json:"size_min"`
+				SizeMax            uint64 `yaml:"size_max" json:"size_max"`
+				PartSize           uint64 `yaml:"part_size" json:"part_size"`
 				SizeLast           uint64
-				SizeDistribution   string `yaml:"size_distribution"`
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				SizeDistribution   string `yaml:"size_distribution" json:"size_distribution"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
-				Unit               string `yaml:"unit"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
+				Unit               string `yaml:"unit" json:"unit"`
 			}{
 				SizeMin:            1,
 				SizeMax:            2,
@@ -151,27 +151,27 @@ func Test_checkTestCase(t *testing.T) {
 				SizeDistribution:   "constant",
 				NumberDistribution: "constant",
 			}}}, true},
-		{"No Object Unit defined", args{&TestCaseConfiguration{Runtime: time.Second, OpsDeadline: 10, ReadWeight: 1,
+		{"No Object Unit defined", args{&TestCaseConfiguration{Runtime: Duration(time.Second), OpsDeadline: 10, ReadWeight: 1,
 			Buckets: struct {
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
 			}{
 				NumberMin:          1,
 				NumberDistribution: "constant",
 			},
 			Objects: struct {
-				SizeMin            uint64 `yaml:"size_min"`
-				SizeMax            uint64 `yaml:"size_max"`
-				PartSize           uint64 `yaml:"part_size"`
+				SizeMin            uint64 `yaml:"size_min" json:"size_min"`
+				SizeMax            uint64 `yaml:"size_max" json:"size_max"`
+				PartSize           uint64 `yaml:"part_size" json:"part_size"`
 				SizeLast           uint64
-				SizeDistribution   string `yaml:"size_distribution"`
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				SizeDistribution   string `yaml:"size_distribution" json:"size_distribution"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
-				Unit               string `yaml:"unit"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
+				Unit               string `yaml:"unit" json:"unit"`
 			}{
 				SizeMin:            1,
 				SizeMax:            2,
@@ -179,56 +179,27 @@ func Test_checkTestCase(t *testing.T) {
 				SizeDistribution:   "constant",
 				NumberDistribution: "constant",
 			}}}, true},
-		{"Wrong object unit", args{&TestCaseConfiguration{Runtime: time.Second, OpsDeadline: 10, ReadWeight: 1,
+		{"Wrong object unit", args{&TestCaseConfiguration{Runtime: Duration(time.Second), OpsDeadline: 10, ReadWeight: 1,
 			Buckets: struct {
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
 			}{
 				NumberMin:          1,
 				NumberDistribution: "constant",
 			},
 			Objects: struct {
-				SizeMin            uint64 `yaml:"size_min"`
-				SizeMax            uint64 `yaml:"size_max"`
-				PartSize           uint64 `yaml:"part_size"`
+				SizeMin            uint64 `yaml:"size_min" json:"size_min"`
+				SizeMax            uint64 `yaml:"size_max" json:"size_max"`
+				PartSize           uint64 `yaml:"part_size" json:"part_size"`
 				SizeLast           uint64
-				SizeDistribution   string `yaml:"size_distribution"`
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				SizeDistribution   string `yaml:"size_distribution" json:"size_distribution"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
-				Unit               string `yaml:"unit"`
-			}{
-				SizeMin:            1,
-				SizeMax:            2,
-				NumberMin:          3,
-				SizeDistribution:   "constant",
-				NumberDistribution: "constant",
-				Unit:               "XB",
-			}}}, true},
-		{"Existing object read without bucket prefix", args{&TestCaseConfiguration{Runtime: time.Second, OpsDeadline: 10, ExistingReadWeight: 1,
-			Buckets: struct {
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
-				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
-			}{
-				NumberMin:          1,
-				NumberDistribution: "constant",
-			},
-			Objects: struct {
-				SizeMin            uint64 `yaml:"size_min"`
-				SizeMax            uint64 `yaml:"size_max"`
-				PartSize           uint64 `yaml:"part_size"`
-				SizeLast           uint64
-				SizeDistribution   string `yaml:"size_distribution"`
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
-				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
-				Unit               string `yaml:"unit"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
+				Unit               string `yaml:"unit" json:"unit"`
 			}{
 				SizeMin:            1,
 				SizeMax:            2,
@@ -237,27 +208,56 @@ func Test_checkTestCase(t *testing.T) {
 				NumberDistribution: "constant",
 				Unit:               "XB",
 			}}}, true},
-		{"All good", args{&TestCaseConfiguration{Runtime: time.Second, OpsDeadline: 10, ReadWeight: 1,
+		{"Existing object read without bucket prefix", args{&TestCaseConfiguration{Runtime: Duration(time.Second), OpsDeadline: 10, ExistingReadWeight: 1,
 			Buckets: struct {
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
 			}{
 				NumberMin:          1,
 				NumberDistribution: "constant",
 			},
 			Objects: struct {
-				SizeMin            uint64 `yaml:"size_min"`
-				SizeMax            uint64 `yaml:"size_max"`
-				PartSize           uint64 `yaml:"part_size"`
+				SizeMin            uint64 `yaml:"size_min" json:"size_min"`
+				SizeMax            uint64 `yaml:"size_max" json:"size_max"`
+				PartSize           uint64 `yaml:"part_size" json:"part_size"`
 				SizeLast           uint64
-				SizeDistribution   string `yaml:"size_distribution"`
-				NumberMin          uint64 `yaml:"number_min"`
-				NumberMax          uint64 `yaml:"number_max"`
+				SizeDistribution   string `yaml:"size_distribution" json:"size_distribution"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 				NumberLast         uint64
-				NumberDistribution string `yaml:"number_distribution"`
-				Unit               string `yaml:"unit"`
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
+				Unit               string `yaml:"unit" json:"unit"`
+			}{
+				SizeMin:            1,
+				SizeMax:            2,
+				NumberMin:          3,
+				SizeDistribution:   "constant",
+				NumberDistribution: "constant",
+				Unit:               "XB",
+			}}}, true},
+		{"All good", args{&TestCaseConfiguration{Runtime: Duration(time.Second), OpsDeadline: 10, ReadWeight: 1,
+			Buckets: struct {
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
+				NumberLast         uint64
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
+			}{
+				NumberMin:          1,
+				NumberDistribution: "constant",
+			},
+			Objects: struct {
+				SizeMin            uint64 `yaml:"size_min" json:"size_min"`
+				SizeMax            uint64 `yaml:"size_max" json:"size_max"`
+				PartSize           uint64 `yaml:"part_size" json:"part_size"`
+				SizeLast           uint64
+				SizeDistribution   string `yaml:"size_distribution" json:"size_distribution"`
+				NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+				NumberMax          uint64 `yaml:"number_max" json:"number_max"`
+				NumberLast         uint64
+				NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
+				Unit               string `yaml:"unit" json:"unit"`
 			}{
 				SizeMin:            1,
 				SizeMax:            2,

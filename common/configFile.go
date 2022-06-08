@@ -1,10 +1,14 @@
 package common
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -21,63 +25,63 @@ const (
 
 // S3Configuration contains all information to connect to a certain S3 endpoint
 type S3Configuration struct {
-	AccessKey     string        `yaml:"access_key"`
-	SecretKey     string        `yaml:"secret_key"`
-	Region        string        `yaml:"region"`
-	Endpoint      string        `yaml:"endpoint"`
-	Timeout       time.Duration `yaml:"timeout"`
-	SkipSSLVerify bool          `yaml:"skipSSLverify"`
+	AccessKey     string        `yaml:"access_key" json:"access_key"`
+	SecretKey     string        `yaml:"secret_key" json:"secret_key"`
+	Region        string        `yaml:"region" json:"region"`
+	Endpoint      string        `yaml:"endpoint" json:"endpoint"`
+	Timeout       time.Duration `yaml:"timeout" json:"timeout"`
+	SkipSSLVerify bool          `yaml:"skipSSLverify" json:"skipSSLverify"`
 }
 
 // GrafanaConfiguration contains all information necessary to add annotations
 // via the Grafana HTTP API
 type GrafanaConfiguration struct {
-	username string `yaml:"username"`
-	password string `yaml:"password"`
-	Endpoint string `yaml:"endpoint"`
+	Username string `yaml:"username" json:"username"`
+	Password string `yaml:"password" json:"password"`
+	Endpoint string `yaml:"endpoint" json:"endpoint"`
 }
 
 // TestCaseConfiguration is the configuration of a performance test
 type TestCaseConfiguration struct {
 	Objects struct {
-		SizeMin            uint64 `yaml:"size_min"`
-		SizeMax            uint64 `yaml:"size_max"`
-		PartSize           uint64 `yaml:"part_size"`
+		SizeMin            uint64 `yaml:"size_min" json:"size_min"`
+		SizeMax            uint64 `yaml:"size_max" json:"size_max"`
+		PartSize           uint64 `yaml:"part_size" json:"part_size"`
 		SizeLast           uint64
-		SizeDistribution   string `yaml:"size_distribution"`
-		NumberMin          uint64 `yaml:"number_min"`
-		NumberMax          uint64 `yaml:"number_max"`
+		SizeDistribution   string `yaml:"size_distribution" json:"size_distribution"`
+		NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+		NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 		NumberLast         uint64
-		NumberDistribution string `yaml:"number_distribution"`
-		Unit               string `yaml:"unit"`
-	} `yaml:"objects"`
+		NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
+		Unit               string `yaml:"unit" json:"unit"`
+	} `yaml:"objects" json:"objects"`
 	Buckets struct {
-		NumberMin          uint64 `yaml:"number_min"`
-		NumberMax          uint64 `yaml:"number_max"`
+		NumberMin          uint64 `yaml:"number_min" json:"number_min"`
+		NumberMax          uint64 `yaml:"number_max" json:"number_max"`
 		NumberLast         uint64
-		NumberDistribution string `yaml:"number_distribution"`
-	} `yaml:"buckets"`
-	Name               string        `yaml:"name"`
-	BucketPrefix       string        `yaml:"bucket_prefix"`
-	ObjectPrefix       string        `yaml:"object_prefix"`
-	Runtime            time.Duration `yaml:"stop_with_runtime"`
-	OpsDeadline        uint64        `yaml:"stop_with_ops"`
-	Workers            int           `yaml:"workers"`
-	WorkerShareBuckets bool          `yaml:"workers_share_buckets"`
-	ParallelClients    int           `yaml:"parallel_clients"`
-	CleanAfter         bool          `yaml:"clean_after"`
-	ReadWeight         int           `yaml:"read_weight"`
-	ExistingReadWeight int           `yaml:"existing_read_weight"`
-	WriteWeight        int           `yaml:"write_weight"`
-	ListWeight         int           `yaml:"list_weight"`
-	DeleteWeight       int           `yaml:"delete_weight"`
+		NumberDistribution string `yaml:"number_distribution" json:"number_distribution"`
+	} `yaml:"buckets" json:"buckets"`
+	Name               string   `yaml:"name" json:"name"`
+	BucketPrefix       string   `yaml:"bucket_prefix" json:"bucket_prefix"`
+	ObjectPrefix       string   `yaml:"object_prefix" json:"object_prefix"`
+	Runtime            Duration `yaml:"stop_with_runtime" json:"stop_with_runtime"`
+	OpsDeadline        uint64   `yaml:"stop_with_ops" json:"stop_with_ops"`
+	Workers            int      `yaml:"workers" json:"workers"`
+	WorkerShareBuckets bool     `yaml:"workers_share_buckets" json:"workers_share_buckets"`
+	ParallelClients    int      `yaml:"parallel_clients" json:"parallel_clients"`
+	CleanAfter         bool     `yaml:"clean_after" json:"clean_after"`
+	ReadWeight         int      `yaml:"read_weight" json:"read_weight"`
+	ExistingReadWeight int      `yaml:"existing_read_weight" json:"existing_read_weight"`
+	WriteWeight        int      `yaml:"write_weight" json:"write_weight"`
+	ListWeight         int      `yaml:"list_weight" json:"list_weight"`
+	DeleteWeight       int      `yaml:"delete_weight" json:"delete_weight"`
 }
 
 // Testconf contains all the information necessary to set up a distributed test
 type Testconf struct {
-	S3Config      []*S3Configuration       `yaml:"s3_config"`
-	GrafanaConfig *GrafanaConfiguration    `yaml:"grafana_config"`
-	Tests         []*TestCaseConfiguration `yaml:"tests"`
+	S3Config      []*S3Configuration       `yaml:"s3_config" json:"s3_config"`
+	GrafanaConfig *GrafanaConfiguration    `yaml:"grafana_config" json:"grafana_config"`
+	Tests         []*TestCaseConfiguration `yaml:"tests" json:"tests"`
 }
 
 // WorkerConf is the configuration that is sent to each worker
@@ -203,4 +207,47 @@ func EvaluateDistribution(min uint64, max uint64, lastNumber *uint64, increment 
 		return *lastNumber
 	}
 	return 0
+}
+
+// JSON package does not currently marshal/unmarshal time.Duration so we provide a way to do it here
+type Duration time.Duration
+
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(d).String())
+}
+
+func (d *Duration) UnmarshalJSON(b []byte) error {
+	var v interface{}
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	switch value := v.(type) {
+	case float64:
+		*d = Duration(time.Duration(value))
+		return nil
+	case string:
+		tmp, err := time.ParseDuration(value)
+		if err != nil {
+			return err
+		}
+		*d = Duration(tmp)
+		return nil
+	default:
+		return errors.New("invalid duration")
+	}
+}
+
+func (d Duration) MarshalYAML() ([]byte, error) {
+	return yaml.Marshal(time.Duration(d).String())
+}
+
+func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var yamlDuration time.Duration
+	err := unmarshal(yamlDuration)
+	if err != nil {
+		return err
+	}
+
+	*d = Duration(yamlDuration)
+	return nil
 }
