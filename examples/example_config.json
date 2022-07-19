@@ -1,0 +1,26 @@
+{
+    "s3_config": [
+        { 
+            "access_key": "abc", "secret_key": "as", "region": "eu-central-1", "endpoint": "https://my.rgw.endpoint:8080", 
+            "skipSSLverify": false 
+        },
+        { 
+            "access_key": "def", "secret_key": "as", "region": "eu-central-2", "endpoint": "https://my.rgw.endpoint:8080", 
+            "skipSSLverify": false 
+        },
+        { 
+            "access_key": "ghi", "secret_key": "as", "region": "eu-central-3", "endpoint": "https://my.rgw.endpoint:8080", 
+            "skipSSLverify": false 
+        }
+    ],
+    "grafana_config": { "endpoint": "http://grafana", "username": "admin", "password": "grafana" },
+    "tests": [
+        { "name": "My first example test", "read_weight": 20, "existing_read_weight": 0, "write_weight": 80, "delete_weight": 0, 
+          "list_weight": 0, "bucket_prefix": "1255gosbench-", "object_prefix": "obj", "stop_with_runtime": "1h30m", "stop_with_ops": 10, 
+          "workers": 2, "workers_share_buckets": true, "parallel_clients": 3, "clean_after": true,
+          "objects": {"size_min": 5, "size_max": 100, "size_distribution": "random", "unit": "KB", 
+                      "number_min": 10, "number_max": 10, "number_distribution": "constant" },
+          "buckets": { "number_min": 1, "number_max": 10, "number_distribution": "constant" }
+        }
+    ]
+}

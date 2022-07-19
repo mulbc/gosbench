@@ -11,4 +11,5 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	go.opencensus.io v0.22.3
 	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v3 v3.0.0-20220512140231-539c8e751b99
 )
