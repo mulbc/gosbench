@@ -159,17 +159,23 @@ func listObjects(service *s3.S3, prefix string, bucket string) (*s3.ListObjectsV
 	return result, err
 }
 
-func getObject(service *s3.S3, objectName string, bucket string) error {
-	// Create a downloader with the session and custom options
-	downloader := s3manager.NewDownloaderWithClient(service)
-	buf := aws.NewWriteAtBuffer([]byte{})
-	_, err := downloader.DownloadWithContext(ctx, buf, &s3.GetObjectInput{
+func getObject(service *s3.S3, objectName string, bucket string, objectSize uint64) error {
+	// Remove the allocation of buffer
+	result, err := svc.GetObjectWithContext(ctx, &s3.GetObjectInput{
 		Bucket: &bucket,
 		Key:    &objectName,
-	}, func(d *s3manager.Downloader) {
-		d.PartSize = 64 * 1024 * 1024 // 64MB parts
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	numBytes, err := io.Copy(io.Discard, result.Body)
+	if err != nil {
+		return err
+	}
+	if numBytes != int64(objectSize) {
+		return fmt.Errorf("Expected object length %d is not matched to actual object length %d", objectSize, numBytes)
+	}
+	return nil
 }
 
 func deleteObject(service *s3.S3, objectName string, bucket string) error {

@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -21,6 +22,7 @@ var prometheusPort int
 var debug, trace bool
 
 func init() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
 	})
