@@ -2,10 +2,10 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"math/rand"
 	"sort"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -78,15 +78,6 @@ func GetNextOperation(Queue *Workqueue) string {
 	})
 	return Queue.OperationValues[0].Key
 }
-
-func init() {
-	workContext = context.Background()
-}
-
-var workContext context.Context
-
-// WorkCancel is the function to stop the execution of jobs
-var WorkCancel context.CancelFunc
 
 // IncreaseOperationValue increases the given operation's value by the set amount
 func IncreaseOperationValue(operation string, value float64, Queue *Workqueue) error {
@@ -229,18 +220,17 @@ func (op Stopper) Clean() error {
 
 // DoWork processes the workitems in the workChannel until
 // either the time runs out or a stopper is found
-func DoWork(workChannel chan WorkItem, doneChannel chan bool) {
+func DoWork(workChannel <-chan WorkItem, notifyChan <-chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for {
 		select {
-		case <-workContext.Done():
+		case <-notifyChan:
 			log.Debugf("Runtime over - Got timeout from work context")
-			doneChannel <- true
 			return
 		case work := <-workChannel:
 			switch work.(type) {
 			case Stopper:
 				log.Debug("Found the end of the work Queue - stopping")
-				doneChannel <- true
 				return
 			}
 			err := work.Do()
