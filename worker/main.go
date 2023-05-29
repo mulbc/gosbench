@@ -248,11 +248,11 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 		var PreExistingObjectCount uint64
 		if testConfig.ExistingReadWeight > 0 {
 			PreExistingObjects, err = listObjects(housekeepingSvc, "", bucketName)
-			PreExistingObjectCount = uint64(len(PreExistingObjects.Contents))
-			log.Debugf("Found %d objects in bucket %s", PreExistingObjectCount, bucketName)
 			if err != nil {
 				log.WithError(err).Fatalf("Problems when listing contents of bucket %s", bucketName)
 			}
+			PreExistingObjectCount = uint64(len(PreExistingObjects.Contents))
+			log.Debugf("Found %d objects in bucket %s", PreExistingObjectCount, bucketName)
 		}
 		objectCount := common.EvaluateDistribution(testConfig.Objects.NumberMin, testConfig.Objects.NumberMax, &testConfig.Objects.NumberLast, 1, testConfig.Objects.NumberDistribution)
 		for object := uint64(0); object < objectCount; object++ {
