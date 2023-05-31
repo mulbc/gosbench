@@ -223,19 +223,20 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	switch value := v.(type) {
+	case int:
+		*d = Duration(time.Duration(value))
 	case float64:
 		*d = Duration(time.Duration(value))
-		return nil
 	case string:
 		tmp, err := time.ParseDuration(value)
 		if err != nil {
 			return err
 		}
 		*d = Duration(tmp)
-		return nil
 	default:
 		return errors.New("invalid duration")
 	}
+	return nil
 }
 
 func (d Duration) MarshalYAML() ([]byte, error) {
@@ -243,13 +244,25 @@ func (d Duration) MarshalYAML() ([]byte, error) {
 }
 
 func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var yamlDuration time.Duration
-	err := unmarshal(yamlDuration)
+	var v interface{}
+	err := unmarshal(&v)
 	if err != nil {
 		return err
 	}
-
-	*d = Duration(yamlDuration)
+	switch value := v.(type) {
+	case int:
+		*d = Duration(time.Duration(value))
+	case float64:
+		*d = Duration(time.Duration(value))
+	case string:
+		tmp, err := time.ParseDuration(value)
+		if err != nil {
+			return err
+		}
+		*d = Duration(tmp)
+	default:
+		return errors.New("invalid duration")
+	}
 	return nil
 }
 
