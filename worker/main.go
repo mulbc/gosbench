@@ -175,7 +175,7 @@ func workUntilTimeout(Workqueue *Workqueue, workChannel chan WorkItem, notifyCha
 		}
 		for _, work := range *Workqueue.Queue {
 			switch work.(type) {
-			case DeleteOperation:
+			case *DeleteOperation:
 				log.Debug("Re-Running Work preparation for delete job started")
 				err := work.Prepare()
 				if err != nil {
@@ -194,7 +194,7 @@ func workUntilOps(Workqueue *Workqueue, workChannel chan WorkItem, maxOps uint64
 			if currentOps >= maxOps {
 				log.Debug("Reached OpsDeadline ... waiting for workers to finish")
 				for worker := 0; worker < numberOfWorker; worker++ {
-					workChannel <- Stopper{}
+					workChannel <- &Stopper{}
 				}
 				return
 			}
@@ -203,7 +203,7 @@ func workUntilOps(Workqueue *Workqueue, workChannel chan WorkItem, maxOps uint64
 		}
 		for _, work := range *Workqueue.Queue {
 			switch work.(type) {
-			case DeleteOperation:
+			case *DeleteOperation:
 				log.Debug("Re-Running Work preparation for delete job started")
 				err := work.Prepare()
 				if err != nil {
@@ -269,7 +269,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 				if err != nil {
 					log.WithError(err).Error("Could not increase operational Value - ignoring")
 				}
-				new := ReadOperation{
+				new := &ReadOperation{
 					TestName:                 testConfig.Name,
 					Bucket:                   bucketName,
 					ObjectName:               fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
@@ -282,7 +282,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 				if err != nil {
 					log.WithError(err).Error("Could not increase operational Value - ignoring")
 				}
-				new := ReadOperation{
+				new := &ReadOperation{
 					TestName:                 testConfig.Name,
 					Bucket:                   bucketName,
 					ObjectName:               *preExistingObjects.Contents[object%preExistingObjectCount].Key,
@@ -295,7 +295,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 				if err != nil {
 					log.WithError(err).Error("Could not increase operational Value - ignoring")
 				}
-				new := WriteOperation{
+				new := &WriteOperation{
 					TestName:   testConfig.Name,
 					Bucket:     bucketName,
 					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
@@ -307,7 +307,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 				if err != nil {
 					log.WithError(err).Error("Could not increase operational Value - ignoring")
 				}
-				new := ListOperation{
+				new := &ListOperation{
 					TestName:   testConfig.Name,
 					Bucket:     bucketName,
 					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
@@ -319,7 +319,7 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 				if err != nil {
 					log.WithError(err).Error("Could not increase operational Value - ignoring")
 				}
-				new := DeleteOperation{
+				new := &DeleteOperation{
 					TestName:   testConfig.Name,
 					Bucket:     bucketName,
 					ObjectName: fmt.Sprintf("%s%s%d", workerID, testConfig.ObjectPrefix, object),
