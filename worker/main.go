@@ -243,15 +243,20 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 		if err != nil {
 			log.WithError(err).WithField("bucket", bucketName).Error("Error when creating bucket")
 		}
-		var PreExistingObjects *s3.ListObjectsOutput
-		var PreExistingObjectCount uint64
+		var preExistingObjects *s3.ListObjectsOutput
+		var preExistingObjectCount uint64
 		if testConfig.ExistingReadWeight > 0 {
-			PreExistingObjects, err = listObjects(housekeepingSvc, "", bucketName)
+			preExistingObjects, err = listObjects(housekeepingSvc, "", bucketName)
 			if err != nil {
 				log.WithError(err).Fatalf("Problems when listing contents of bucket %s", bucketName)
 			}
-			PreExistingObjectCount = uint64(len(PreExistingObjects.Contents))
-			log.Debugf("Found %d objects in bucket %s", PreExistingObjectCount, bucketName)
+			preExistingObjectCount = uint64(len(preExistingObjects.Contents))
+			log.Debugf("Found %d objects in bucket %s", preExistingObjectCount, bucketName)
+
+			if preExistingObjectCount <= 0 {
+				log.Warningf("There is no objects in bucket %s", bucketName)
+				continue
+			}
 		}
 		objectCount := common.EvaluateDistribution(testConfig.Objects.NumberMin, testConfig.Objects.NumberMax, &testConfig.Objects.NumberLast, 1, testConfig.Objects.NumberDistribution)
 		for object := uint64(0); object < objectCount; object++ {
@@ -280,8 +285,8 @@ func fillWorkqueue(testConfig *common.TestCaseConfiguration, Workqueue *Workqueu
 				new := ReadOperation{
 					TestName:                 testConfig.Name,
 					Bucket:                   bucketName,
-					ObjectName:               *PreExistingObjects.Contents[object%PreExistingObjectCount].Key,
-					ObjectSize:               uint64(*PreExistingObjects.Contents[object%PreExistingObjectCount].Size),
+					ObjectName:               *preExistingObjects.Contents[object%preExistingObjectCount].Key,
+					ObjectSize:               uint64(*preExistingObjects.Contents[object%preExistingObjectCount].Size),
 					WorksOnPreexistingObject: true,
 				}
 				*Workqueue.Queue = append(*Workqueue.Queue, new)
