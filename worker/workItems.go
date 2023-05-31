@@ -91,7 +91,7 @@ func IncreaseOperationValue(operation string, value float64, Queue *Workqueue) e
 }
 
 // Prepare prepares the execution of the ReadOperation
-func (op ReadOperation) Prepare() error {
+func (op *ReadOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).WithField("Preexisting?", op.WorksOnPreexistingObject).Debug("Preparing ReadOperation")
 	if op.WorksOnPreexistingObject {
 		return nil
@@ -100,30 +100,30 @@ func (op ReadOperation) Prepare() error {
 }
 
 // Prepare prepares the execution of the WriteOperation
-func (op WriteOperation) Prepare() error {
+func (op *WriteOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing WriteOperation")
 	return nil
 }
 
 // Prepare prepares the execution of the ListOperation
-func (op ListOperation) Prepare() error {
+func (op *ListOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing ListOperation")
 	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
 // Prepare prepares the execution of the DeleteOperation
-func (op DeleteOperation) Prepare() error {
+func (op *DeleteOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing DeleteOperation")
 	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
 }
 
 // Prepare does nothing here
-func (op Stopper) Prepare() error {
+func (op *Stopper) Prepare() error {
 	return nil
 }
 
 // Do executes the actual work of the ReadOperation
-func (op ReadOperation) Do() error {
+func (op *ReadOperation) Do() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).WithField("Preexisting?", op.WorksOnPreexistingObject).Debug("Doing ReadOperation")
 	start := time.Now()
 	err := getObject(svc, op.ObjectName, op.Bucket)
@@ -139,7 +139,7 @@ func (op ReadOperation) Do() error {
 }
 
 // Do executes the actual work of the WriteOperation
-func (op WriteOperation) Do() error {
+func (op *WriteOperation) Do() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Doing WriteOperation")
 	start := time.Now()
 	err := putObject(svc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
@@ -155,7 +155,7 @@ func (op WriteOperation) Do() error {
 }
 
 // Do executes the actual work of the ListOperation
-func (op ListOperation) Do() error {
+func (op *ListOperation) Do() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Doing ListOperation")
 	start := time.Now()
 	_, err := listObjects(svc, op.ObjectName, op.Bucket)
@@ -170,7 +170,7 @@ func (op ListOperation) Do() error {
 }
 
 // Do executes the actual work of the DeleteOperation
-func (op DeleteOperation) Do() error {
+func (op *DeleteOperation) Do() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Doing DeleteOperation")
 	start := time.Now()
 	err := deleteObject(svc, op.ObjectName, op.Bucket)
@@ -185,12 +185,12 @@ func (op DeleteOperation) Do() error {
 }
 
 // Do does nothing here
-func (op Stopper) Do() error {
+func (op *Stopper) Do() error {
 	return nil
 }
 
 // Clean removes the objects and buckets left from the previous ReadOperation
-func (op ReadOperation) Clean() error {
+func (op *ReadOperation) Clean() error {
 	if op.WorksOnPreexistingObject {
 		return nil
 	}
@@ -199,22 +199,22 @@ func (op ReadOperation) Clean() error {
 }
 
 // Clean removes the objects and buckets left from the previous WriteOperation
-func (op WriteOperation) Clean() error {
+func (op *WriteOperation) Clean() error {
 	return deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
 }
 
 // Clean removes the objects and buckets left from the previous ListOperation
-func (op ListOperation) Clean() error {
+func (op *ListOperation) Clean() error {
 	return deleteObject(housekeepingSvc, op.ObjectName, op.Bucket)
 }
 
 // Clean removes the objects and buckets left from the previous DeleteOperation
-func (op DeleteOperation) Clean() error {
+func (op *DeleteOperation) Clean() error {
 	return nil
 }
 
 // Clean does nothing here
-func (op Stopper) Clean() error {
+func (op *Stopper) Clean() error {
 	return nil
 }
 
@@ -229,7 +229,7 @@ func DoWork(workChannel <-chan WorkItem, notifyChan <-chan struct{}, wg *sync.Wa
 			return
 		case work := <-workChannel:
 			switch work.(type) {
-			case Stopper:
+			case *Stopper:
 				log.Debug("Found the end of the work Queue - stopping")
 				return
 			}
