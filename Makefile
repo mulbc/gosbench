@@ -19,3 +19,5 @@ push-dev:
 	docker build --tag quay.io/mulbc/gosbench-worker:$(UNIX_DATE) --build-arg "TYPE=worker" --build-arg "BUILD_DATE=$(BUILD_DATE)" --build-arg "VCS_REF=$(VCS_REF)" .
 	docker push quay.io/mulbc/gosbench-server:$(UNIX_DATE)
 	docker push quay.io/mulbc/gosbench-worker:$(UNIX_DATE)
+test:
+	go test -v `go list ./...`

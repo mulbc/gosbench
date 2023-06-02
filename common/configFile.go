@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"strings"
 	"time"
@@ -114,7 +115,7 @@ type WorkerMessage struct {
 }
 
 // CheckConfig checks the global config
-func CheckConfig(config Testconf) {
+func CheckConfig(config *Testconf) {
 	for _, testcase := range config.Tests {
 		// log.Debugf("Checking testcase with prefix %s", testcase.BucketPrefix)
 		err := checkTestCase(testcase)
@@ -250,4 +251,30 @@ func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	*d = Duration(yamlDuration)
 	return nil
+}
+
+var ReadFile = ioutil.ReadFile
+
+func LoadConfigFromFile(configFile string) *Testconf {
+	configFileContent, err := ReadFile(configFile)
+	if err != nil {
+		log.WithError(err).Fatalf("Error reading config file:")
+	}
+	var config Testconf
+
+	if strings.HasSuffix(configFile, ".yaml") || strings.HasSuffix(configFile, ".yml") {
+		err = yaml.Unmarshal(configFileContent, &config)
+		if err != nil {
+			log.WithError(err).Fatalf("Error unmarshaling yaml config file:")
+		}
+	} else if strings.HasSuffix(configFile, ".json") {
+		err = json.Unmarshal(configFileContent, &config)
+		if err != nil {
+			log.WithError(err).Fatalf("Error unmarshaling json config file:")
+		}
+	} else {
+		log.WithError(err).Fatalf("Configuration file must be a yaml or json formatted file")
+	}
+
+	return &config
 }
