@@ -6,15 +6,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/mulbc/gosbench/common"
-	"gopkg.in/yaml.v3"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -48,33 +45,8 @@ var serverPort int
 var readyWorkers chan *net.Conn
 var debug, trace bool
 
-func loadConfigFromFile(configFileContent []byte) common.Testconf {
-	var config common.Testconf
-	var err error
-
-	if strings.HasSuffix(configFileLocation, ".yaml") || strings.HasSuffix(configFileLocation, ".yml") {
-		err = yaml.Unmarshal(configFileContent, &config)
-		if err != nil {
-			log.WithError(err).Fatalf("Error unmarshaling yaml config file:")
-		}
-	} else if strings.HasSuffix(configFileLocation, ".json") {
-		err = json.Unmarshal(configFileContent, &config)
-		if err != nil {
-			log.WithError(err).Fatalf("Error unmarshaling json config file:")
-		}
-	} else {
-		log.WithError(err).Fatalf("Configuration file must be a yaml or json formatted file")
-	}
-
-	return config
-}
-
 func main() {
-	configFileContent, err := ioutil.ReadFile(configFileLocation)
-	if err != nil {
-		log.WithError(err).Fatalf("Error reading config file:")
-	}
-	config := loadConfigFromFile(configFileContent)
+	config := common.LoadConfigFromFile(configFileLocation)
 	common.CheckConfig(config)
 
 	readyWorkers = make(chan *net.Conn)
@@ -119,7 +91,7 @@ func main() {
 	}
 }
 
-func scheduleTests(config common.Testconf) {
+func scheduleTests(config *common.Testconf) {
 
 	for testNumber, test := range config.Tests {
 
