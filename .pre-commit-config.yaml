@@ -2,7 +2,7 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v2.2.3
+  rev: v4.5.0
   hooks:
   -   id: trailing-whitespace
   -   id: end-of-file-fixer
@@ -15,10 +15,19 @@ repos:
   -   id: detect-aws-credentials
   -   id: trailing-whitespace
 - repo: https://github.com/syntaqx/git-hooks
-  rev: v0.0.16
+  rev: v0.0.18
   hooks:
     - id: forbid-binary
     - id: go-fmt
     - id: go-mod-tidy
     - id: shellcheck
     - id: shfmt
+- repo: https://gitlab.corp.redhat.com/infosec-public/developer-workbench/tools.git
+  rev: rh-pre-commit-2.0.3
+  hooks:
+    # If you have not run this hook on your system before, it may prompt you to
+    # log in for patterns, and you will need to try again.
+    #
+    # Docs: https://source.redhat.com/departments/it/it-information-security/leaktk/leaktk_components/rh_pre_commit
+    - id: rh-pre-commit
+    # - id: rh-pre-commit.commit-msg # Optional for commit-msg attestation

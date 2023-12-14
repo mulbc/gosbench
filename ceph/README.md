@@ -3,17 +3,17 @@
 
 ```shell
 # ceph orch ls
-NAME                       PORTS        RUNNING  REFRESHED  AGE  PLACEMENT                        
-alertmanager               ?:9093,9094      1/1  8m ago     16m  count:1                          
-ceph-exporter                               3/3  8m ago     16m  *                                
-crash                                       3/3  8m ago     16m  *                                
-grafana                    ?:3000           1/1  8m ago     16m  count:1                          
-mgr                                         2/2  8m ago     16m  count:2                          
-mon                                         3/5  8m ago     16m  count:5                          
-node-exporter              ?:9100           3/3  8m ago     16m  *                                
-osd.all-available-devices                     6  8m ago     13m  *                                
-prometheus                 ?:9095           1/1  8m ago     16m  count:1                          
-rgw.test                   ?:80             2/2  8m ago     8m   ceph-demo-1;ceph-demo-2;count:2  
+NAME                       PORTS        RUNNING  REFRESHED  AGE  PLACEMENT
+alertmanager               ?:9093,9094      1/1  8m ago     16m  count:1
+ceph-exporter                               3/3  8m ago     16m  *
+crash                                       3/3  8m ago     16m  *
+grafana                    ?:3000           1/1  8m ago     16m  count:1
+mgr                                         2/2  8m ago     16m  count:2
+mon                                         3/5  8m ago     16m  count:5
+node-exporter              ?:9100           3/3  8m ago     16m  *
+osd.all-available-devices                     6  8m ago     13m  *
+prometheus                 ?:9095           1/1  8m ago     16m  count:1
+rgw.test                   ?:80             2/2  8m ago     8m   ceph-demo-1;ceph-demo-2;count:2
 ```
 
 You want to see a line that starts with `rgw`. In the above example it is the last line that mentions `rgw.test`.
@@ -195,23 +195,23 @@ Removed service container.gosb-server
 You can check the status of Gosbench via these two commands:
 ```shell
 # ceph orch ls
-NAME                       PORTS        RUNNING  REFRESHED  AGE  PLACEMENT                        
-alertmanager               ?:9093,9094      1/1  65s ago    3h   count:1                          
-ceph-exporter                               3/3  67s ago    3h   *                                
-crash                                       3/3  67s ago    3h   *                                
-grafana                    ?:3000           1/1  65s ago    3h   count:1                          
-mgr                                         2/2  65s ago    3h   count:2                          
-mon                                         3/5  67s ago    3h   count:5                          
-node-exporter              ?:9100           3/3  67s ago    3h   *                                
-osd.all-available-devices                     6  67s ago    3h   *                                
-prometheus                 ?:9095           1/1  65s ago    3h   count:1                          
-rgw.test                   ?:80             2/2  65s ago    3h   ceph-demo-1;ceph-demo-2;count:2  
+NAME                       PORTS        RUNNING  REFRESHED  AGE  PLACEMENT
+alertmanager               ?:9093,9094      1/1  65s ago    3h   count:1
+ceph-exporter                               3/3  67s ago    3h   *
+crash                                       3/3  67s ago    3h   *
+grafana                    ?:3000           1/1  65s ago    3h   count:1
+mgr                                         2/2  65s ago    3h   count:2
+mon                                         3/5  67s ago    3h   count:5
+node-exporter              ?:9100           3/3  67s ago    3h   *
+osd.all-available-devices                     6  67s ago    3h   *
+prometheus                 ?:9095           1/1  65s ago    3h   count:1
+rgw.test                   ?:80             2/2  65s ago    3h   ceph-demo-1;ceph-demo-2;count:2
 
 
 # ceph orch ps --daemon_type container
-NAME                               HOST         PORTS        STATUS  REFRESHED   AGE  MEM USE  MEM LIM  VERSION    IMAGE ID   
-container.gosb-server.ceph-demo-2  ceph-demo-2  *:2000,2000  error      5m ago  119m        -        -  <unknown>  <unknown>  
-container.gosb-worker.ceph-demo-1  ceph-demo-1  *:8888,8888  error      5m ago    2h        -        -  <unknown>  <unknown>  
-container.gosb-worker.ceph-demo-2  ceph-demo-2  *:8888,8888  error      5m ago    2h        -        -  <unknown>  <unknown>  
+NAME                               HOST         PORTS        STATUS  REFRESHED   AGE  MEM USE  MEM LIM  VERSION    IMAGE ID
+container.gosb-server.ceph-demo-2  ceph-demo-2  *:2000,2000  error      5m ago  119m        -        -  <unknown>  <unknown>
+container.gosb-worker.ceph-demo-1  ceph-demo-1  *:8888,8888  error      5m ago    2h        -        -  <unknown>  <unknown>
+container.gosb-worker.ceph-demo-2  ceph-demo-2  *:8888,8888  error      5m ago    2h        -        -  <unknown>  <unknown>
 container.gosb-worker.ceph-demo-3  ceph-demo-3  *:8888,8888  error      5m ago    2h        -        -  <unknown>  <unknown>
 ```

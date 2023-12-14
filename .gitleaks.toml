@@ -1,0 +1,14 @@
+[allowlist]
+description = "Global Allowlist"
+
+# Ignore based on any subset of the file path
+paths = [
+]
+
+# Ignore based on any subset of the line
+regexes = [
+    # Ignore Ceph example S3 access_key
+    '''H5X8459I7VYC1J9T6EF7''',
+    # Ignore Ceph example S3 secret_key
+    '''zFOA496GIiC9oHoOodpyL9wyvpH2naYvGKpmPMd4''',
+]
