@@ -1,0 +1,63 @@
+# {{ cephadm_managed }}
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+rule_files:
+  - /etc/prometheus/alerting/*
+{% if alertmgr_targets %}
+alerting:
+  alertmanagers:
+    - scheme: http
+      static_configs:
+        - targets: [{{ alertmgr_targets|join(', ') }}]
+{% endif %}
+scrape_configs:
+  - job_name: 'ceph'
+    honor_labels: true
+    static_configs:
+    - targets:
+{% for mgr in mgr_scrape_list %}
+      - '{{ mgr }}'
+{% endfor %}
+
+{% if nodes %}
+  - job_name: 'node'
+    static_configs:
+{% for node in nodes %}
+    - targets: ['{{ node.url }}']
+      labels:
+        instance: '{{ node.hostname }}'
+{% endfor %}
+{% endif %}
+
+{% if haproxy_targets %}
+  - job_name: 'haproxy'
+    static_configs:
+{% for haproxy in haproxy_targets %}
+      - targets: [{{ haproxy.url }}]
+        labels:
+          instance: '{{ haproxy.service }}'
+{% endfor %}
+{% endif %}
+
+{% if ceph_exporter_targets %}
+  - job_name: 'ceph-exporter'
+    honor_labels: true
+    static_configs:
+{% for ceph_exporter in ceph_exporter_targets %}
+    - targets: ['{{ ceph_exporter.url }}']
+      labels:
+        instance: '{{ ceph_exporter.hostname }}'
+{% endfor %}
+{% endif %}
+
+{% if nodes %}
+  - job_name: 'gosbench'
+    static_configs:
+{% for node in nodes %}
+    - targets: ['{{ (node.url).split(':')[0] }}:8888']
+      labels:
+        instance: '{{ node.hostname }}'
+        app: gosbench
+{% endfor %}
+{% endif %}
