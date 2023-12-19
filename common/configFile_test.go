@@ -1,7 +1,7 @@
 package common
 
 import (
-	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -338,7 +338,7 @@ func Test_loadConfigFromFile(t *testing.T) {
 		}
 	}
 	defer func() {
-		ReadFile = ioutil.ReadFile
+		ReadFile = os.ReadFile
 	}()
 	type args struct {
 		configFileContent []byte

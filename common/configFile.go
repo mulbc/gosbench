@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 
@@ -253,7 +253,7 @@ func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-var ReadFile = ioutil.ReadFile
+var ReadFile = os.ReadFile
 
 func LoadConfigFromFile(configFile string) *Testconf {
 	configFileContent, err := ReadFile(configFile)
