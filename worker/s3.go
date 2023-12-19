@@ -144,37 +144,19 @@ func putObject(service *s3.S3, objectName string, objectContent io.ReadSeeker, b
 // 	log.Debugf("Object Properties:\n%+v", result)
 // }
 
-func listObjects(service *s3.S3, prefix string, bucket string) (*s3.ListObjectsOutput, error) {
-	var (
-		marker   string
-		result   *s3.ListObjectsOutput
-		contents []*s3.Object
-		err      error
-	)
-	for {
-		result, err = service.ListObjects(&s3.ListObjectsInput{
-			Bucket: &bucket,
-			Prefix: &prefix,
-			Marker: &marker,
-		})
-		if err != nil {
-			// Cast err to awserr.Error to handle specific error codes.
-			aerr, ok := err.(awserr.Error)
-			if ok && aerr.Code() == s3.ErrCodeNoSuchKey {
-				log.WithError(aerr).Errorf("Could not find prefix %s in bucket %s when querying properties", prefix, bucket)
+func listObjects(service *s3.S3, prefix string, bucket string) (*s3.ListObjectsV2Output, error) {
+	var result *s3.ListObjectsV2Output
+	err := service.ListObjectsV2Pages(&s3.ListObjectsV2Input{Bucket: aws.String(bucket), Prefix: aws.String(prefix)},
+		func(page *s3.ListObjectsV2Output, lastPage bool) bool {
+			if result == nil {
+				result = page
+			} else {
+				result.Contents = append(result.Contents, page.Contents...)
 			}
-			return result, err
-		}
-		marker = *result.NextMarker
-		contents = append(contents, result.Contents...)
-		if !aws.BoolValue(result.IsTruncated) {
-			break
-		}
-	}
-	if contents != nil {
-		result.Contents = contents
-	}
-	return result, nil
+			return !(*page.IsTruncated)
+		})
+
+	return result, err
 }
 
 func getObject(service *s3.S3, objectName string, bucket string) error {
