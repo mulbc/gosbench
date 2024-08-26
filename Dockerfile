@@ -1,4 +1,4 @@
-FROM golang:1.20.14-alpine3.19 as builder
+FROM golang:alpine as builder
 ARG TYPE
 ENV GOBIN=/go/bin
 ENV GOPATH=/go/src
