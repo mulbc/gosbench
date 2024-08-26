@@ -1,6 +1,8 @@
 module github.com/mulbc/gosbench
 
-go 1.20
+go 1.22
+
+toolchain go1.22.6
 
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
