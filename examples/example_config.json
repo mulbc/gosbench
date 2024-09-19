@@ -2,15 +2,15 @@
     "s3_config": [
         { 
             "access_key": "abc", "secret_key": "as", "region": "eu-central-1", "endpoint": "https://my.rgw.endpoint:8080", 
-            "skipSSLverify": false 
+            "skipSSLverify": false, "usePathStyle": false
         },
         { 
             "access_key": "def", "secret_key": "as", "region": "eu-central-2", "endpoint": "https://my.rgw.endpoint:8080", 
-            "skipSSLverify": false 
+            "skipSSLverify": false, "usePathStyle": false
         },
         { 
             "access_key": "ghi", "secret_key": "as", "region": "eu-central-3", "endpoint": "https://my.rgw.endpoint:8080", 
-            "skipSSLverify": false 
+            "skipSSLverify": false, "usePathStyle": false
         }
     ],
     "grafana_config": { "endpoint": "http://grafana", "username": "admin", "password": "grafana" },

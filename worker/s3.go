@@ -96,10 +96,12 @@ func InitS3(config common.S3Configuration) {
 	// specific configuration.
 	svc = s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(config.Endpoint)
+		o.UsePathStyle = config.UsePathStyle
 	})
 	// Use this service to do things that are hidden from the performance monitoring
 	housekeepingSvc = s3.NewFromConfig(hkCfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(config.Endpoint)
+		o.UsePathStyle = config.UsePathStyle
 	})
 
 	log.Debug("S3 Init done")

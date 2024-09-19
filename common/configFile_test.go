@@ -389,6 +389,7 @@ tests:
 					SecretKey:     "secretSecret",
 					Region:        "us-east-1",
 					SkipSSLVerify: true,
+					UsePathStyle:  false,
 				},
 			},
 			Tests: []*TestCaseConfiguration{
