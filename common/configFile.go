@@ -198,7 +198,6 @@ func EvaluateDistribution(min uint64, max uint64, lastNumber *uint64, increment 
 	case "constant":
 		return min
 	case "random":
-		rand.Seed(time.Now().UnixNano())
 		validSize := max - min
 		return ((rand.Uint64() % validSize) + min)
 	case "sequential":
