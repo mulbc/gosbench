@@ -71,6 +71,9 @@ func InitS3(config common.S3Configuration) {
 		s3config.WithHTTPClient(hc),
 		s3config.WithRegion(config.Region),
 		s3config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(config.AccessKey, config.SecretKey, "")),
+		s3config.WithRetryer(func() aws.Retryer {
+			return aws.NopRetryer{}
+		}),
 	)
 	if err != nil {
 		log.WithError(err).Fatal("Unable to build S3 config")
@@ -85,6 +88,9 @@ func InitS3(config common.S3Configuration) {
 		s3config.WithHTTPClient(hkhc),
 		s3config.WithRegion(config.Region),
 		s3config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(config.AccessKey, config.SecretKey, "")),
+		s3config.WithRetryer(func() aws.Retryer {
+			return aws.NopRetryer{}
+		}),
 	)
 	if err != nil {
 		log.WithError(err).Fatal("Unable to build S3 housekeeping config")
