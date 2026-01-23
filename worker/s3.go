@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -24,6 +25,152 @@ import (
 var svc, housekeepingSvc *s3.Client
 var ctx context.Context
 var hc *http.Client
+
+// redirectTransport handles 307/308 redirects with body replay.
+// Uses a probe request (empty body) to discover redirect location first,
+// then sends the full body directly to the target. This avoids "connection reset by peer"
+// when AIStore closes the connection during body transfer to issue a redirect.
+type redirectTransport struct {
+	base         http.RoundTripper
+	maxRedirects int
+}
+
+func (t *redirectTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Buffer body once so we can replay it on redirects
+	var bodyBytes []byte
+	if req.Body != nil {
+		var err error
+		bodyBytes, err = io.ReadAll(req.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read request body: %w", err)
+		}
+		req.Body.Close()
+	}
+
+	// For PUT/POST with body, send probe first to discover redirect location
+	// This avoids connection reset when server redirects during body transfer
+	if len(bodyBytes) > 0 && (req.Method == http.MethodPut || req.Method == http.MethodPost) {
+		probeReq, err := http.NewRequestWithContext(req.Context(), req.Method, req.URL.String(), nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create probe request: %w", err)
+		}
+
+		// Copy headers but set Content-Length to 0 for probe
+		for key, vals := range req.Header {
+			for _, val := range vals {
+				probeReq.Header.Add(key, val)
+			}
+		}
+		probeReq.ContentLength = 0
+		probeReq.Header.Set("Content-Length", "0")
+
+		probeResp, err := t.base.RoundTrip(probeReq)
+		if err != nil {
+			log.Debugf("Probe request failed, falling back to direct request: %v", err)
+		} else {
+			defer probeResp.Body.Close()
+
+			// If we got a redirect, send body directly to target
+			if probeResp.StatusCode == http.StatusTemporaryRedirect || probeResp.StatusCode == http.StatusPermanentRedirect {
+				location := probeResp.Header.Get("Location")
+				if location != "" {
+					log.Debugf("Redirect (probe): %s %s -> %s", req.Method, req.URL.String(), location)
+
+					newURL, err := req.URL.Parse(location)
+					if err != nil {
+						return nil, fmt.Errorf("failed to parse redirect location: %w", err)
+					}
+
+					// Send full request directly to target
+					redirectReq, err := http.NewRequestWithContext(req.Context(), req.Method, newURL.String(), bytes.NewReader(bodyBytes))
+					if err != nil {
+						return nil, fmt.Errorf("failed to create redirect request: %w", err)
+					}
+
+					for key, vals := range req.Header {
+						for _, val := range vals {
+							redirectReq.Header.Add(key, val)
+						}
+					}
+					redirectReq.ContentLength = int64(len(bodyBytes))
+					redirectReq.GetBody = func() (io.ReadCloser, error) {
+						return io.NopCloser(bytes.NewReader(bodyBytes)), nil
+					}
+
+					return t.base.RoundTrip(redirectReq)
+				}
+			}
+		}
+	}
+
+	// Set up body and GetBody for the request
+	if bodyBytes != nil {
+		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		req.ContentLength = int64(len(bodyBytes))
+		req.GetBody = func() (io.ReadCloser, error) {
+			return io.NopCloser(bytes.NewReader(bodyBytes)), nil
+		}
+	}
+
+	// Fallback redirect loop for GET/DELETE or when probe doesn't get a redirect
+	for redirects := 0; redirects <= t.maxRedirects; redirects++ {
+		// Reset body reader for each attempt
+		if bodyBytes != nil {
+			req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		}
+
+		resp, err := t.base.RoundTrip(req)
+		if err != nil {
+			return nil, err
+		}
+
+		// Not a redirect - return response
+		if resp.StatusCode != http.StatusTemporaryRedirect && resp.StatusCode != http.StatusPermanentRedirect {
+			return resp, nil
+		}
+
+		location := resp.Header.Get("Location")
+		if location == "" {
+			return resp, nil
+		}
+
+		log.Debugf("Redirect %d: %s %s -> %s", redirects+1, req.Method, req.URL.String(), location)
+		resp.Body.Close()
+
+		// Parse redirect location
+		newURL, err := req.URL.Parse(location)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse redirect location: %w", err)
+		}
+
+		// Create new request for redirect target
+		newReq, err := http.NewRequestWithContext(req.Context(), req.Method, newURL.String(), nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create redirect request: %w", err)
+		}
+
+		// Copy headers
+		for key, vals := range req.Header {
+			for _, val := range vals {
+				newReq.Header.Add(key, val)
+			}
+		}
+
+		// Set up body for redirect request
+		if bodyBytes != nil {
+			newReq.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+			newReq.ContentLength = int64(len(bodyBytes))
+			newReq.GetBody = func() (io.ReadCloser, error) {
+				return io.NopCloser(bytes.NewReader(bodyBytes)), nil
+			}
+		}
+
+		req = newReq
+	}
+
+	return nil, fmt.Errorf("too many redirects (max %d)", t.maxRedirects)
+}
+
 
 func init() {
 	if err := view.Register([]*view.View{
@@ -59,9 +206,21 @@ func InitS3(config common.S3Configuration) {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipSSLVerify},
 	}
 	tr2 := &ochttp.Transport{Base: tr}
-	hc = &http.Client{
-		Transport: tr2,
+	
+	// Conditionally wrap with redirectTransport to handle 307/308 redirects with body
+	// Enable this for AIStore or other S3-compatible storage that uses redirects
+	var transport http.RoundTripper = tr2
+	if config.HandleRedirect {
+		log.Info("Redirect handling enabled")
+		transport = &redirectTransport{
+			base:         tr2,
+			maxRedirects: 5,
+		}
 	}
+	hc = &http.Client{
+		Transport: transport,
+	}
+
 
 	// TODO Create a context with a timeout - we already use this context in all S3 calls
 	// Usually this shouldn't be a problem ;)
@@ -80,8 +239,15 @@ func InitS3(config common.S3Configuration) {
 	}
 	// Use this Session to do things that are hidden from the performance monitoring
 	// Setting up the housekeeping S3 client
+	var hkTransport http.RoundTripper = tr
+	if config.HandleRedirect {
+		hkTransport = &redirectTransport{
+			base:         tr,
+			maxRedirects: 5,
+		}
+	}
 	hkhc := &http.Client{
-		Transport: tr,
+		Transport: hkTransport,
 	}
 
 	hkCfg, err := s3config.LoadDefaultConfig(ctx,
