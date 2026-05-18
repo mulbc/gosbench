@@ -34,6 +34,7 @@ type WriteOperation struct {
 	Bucket     string
 	ObjectName string
 	ObjectSize uint64
+	Encryption bool
 }
 
 // ListOperation stands for a list operation
@@ -96,25 +97,25 @@ func (op *ReadOperation) Prepare() error {
 	if op.WorksOnPreexistingObject {
 		return nil
 	}
-	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
+	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket, false)
 }
 
 // Prepare prepares the execution of the WriteOperation
 func (op *WriteOperation) Prepare() error {
-	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing WriteOperation")
+	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing WriteOperation", false)
 	return nil
 }
 
 // Prepare prepares the execution of the ListOperation
 func (op *ListOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing ListOperation")
-	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
+	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket, false)
 }
 
 // Prepare prepares the execution of the DeleteOperation
 func (op *DeleteOperation) Prepare() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Preparing DeleteOperation")
-	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
+	return putObject(housekeepingSvc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket, false)
 }
 
 // Prepare does nothing here
@@ -142,7 +143,7 @@ func (op *ReadOperation) Do() error {
 func (op *WriteOperation) Do() error {
 	log.WithField("bucket", op.Bucket).WithField("object", op.ObjectName).Debug("Doing WriteOperation")
 	start := time.Now()
-	err := putObject(svc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket)
+	err := putObject(svc, op.ObjectName, bytes.NewReader(generateRandomBytes(op.ObjectSize)), op.Bucket, op.Encryption)
 	duration := time.Since(start)
 	promLatency.WithLabelValues(op.TestName, "PUT").Observe(float64(duration.Milliseconds()))
 	if err != nil {
