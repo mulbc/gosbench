@@ -113,17 +113,21 @@ func InitS3(config common.S3Configuration) {
 	log.Debug("S3 Init done")
 }
 
-func putObject(service *s3.Client, objectName string, objectContent io.ReadSeeker, bucket string) error {
+func putObject(service *s3.Client, objectName string, objectContent io.ReadSeeker, bucket string, encryption bool) error {
 	// Create an uploader with S3 client and custom options
 	uploader := manager.NewUploader(service, func(d *manager.Uploader) {
 		d.MaxUploadParts = 1
 	})
 
-	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
+	objInput := &s3.PutObjectInput{
 		Bucket: &bucket,
 		Key:    &objectName,
 		Body:   objectContent,
-	})
+	}
+	if encryption {
+		objInput.ServerSideEncryption = types.ServerSideEncryptionAes256
+	}
+	_, err := uploader.Upload(ctx, objInput)
 
 	if err != nil {
 		log.WithError(err).WithField("object", objectName).WithField("bucket", bucket).Errorf("Failed to upload object,")
